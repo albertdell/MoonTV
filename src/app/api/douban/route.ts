@@ -54,6 +54,12 @@ export async function GET(request: Request) {
   const tag = searchParams.get('tag');
   const pageSize = parseInt(searchParams.get('pageSize') || '16');
   const pageStart = parseInt(searchParams.get('pageStart') || '0');
+  
+  // 新增篩選參數
+  const year = searchParams.get('year');
+  const region = searchParams.get('region');
+  const genres = searchParams.get('genres');
+  const sort = searchParams.get('sort') || 'recommend';
 
   // 验证参数
   if (!type || !tag) {
@@ -88,7 +94,13 @@ export async function GET(request: Request) {
     return handleTop250(pageStart);
   }
 
-  const target = `https://movie.douban.com/j/search_subjects?type=${type}&tag=${tag}&sort=recommend&page_limit=${pageSize}&page_start=${pageStart}`;
+  // 構建豆瓣 API URL
+  let target = `https://movie.douban.com/j/search_subjects?type=${type}&tag=${tag}&sort=${sort}&page_limit=${pageSize}&page_start=${pageStart}`;
+  
+  // 添加篩選參數
+  if (year) target += `&year_range=${year}`;
+  if (region) target += `&countries=${region}`;
+  if (genres) target += `&genres=${genres}`;
 
   try {
     // 调用豆瓣 API
