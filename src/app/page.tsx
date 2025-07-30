@@ -79,12 +79,12 @@ function HomeClient() {
         ] = await Promise.all([
           fetch('/api/douban?type=movie&tag=热门'),
           fetch('/api/douban?type=tv&tag=热门'),
-          fetch('/api/douban?type=movie&tag=一周口碑榜'),
-          fetch('/api/douban?type=movie&tag=北美票房榜'),
+          fetch('/api/douban?type=movie&tag=最新'),
+          fetch('/api/douban?type=movie&tag=经典'),
           fetch('/api/douban?type=tv&tag=美剧'),
           fetch('/api/douban?type=tv&tag=韩剧'),
           fetch('/api/douban?type=tv&tag=日剧'),
-          fetch('/api/douban?type=tv&tag=日漫'),
+          fetch('/api/douban?type=tv&tag=动画'),
         ]);
 
         if (moviesResponse.ok) {
@@ -105,14 +105,14 @@ function HomeClient() {
           const weeklyData: DoubanResult = await weeklyResponse.json();
           setWeeklyRanking(weeklyData.list || []);
         } else {
-          console.error('一週口碑榜加載失敗:', weeklyResponse.status);
+          console.error('最新電影加載失敗:', weeklyResponse.status);
         }
 
         if (boxOfficeResponse.ok) {
           const boxOfficeData: DoubanResult = await boxOfficeResponse.json();
           setBoxOffice(boxOfficeData.list || []);
         } else {
-          console.error('北美票房榜加載失敗:', boxOfficeResponse.status);
+          console.error('經典電影加載失敗:', boxOfficeResponse.status);
         }
 
         if (usShowsResponse.ok) {
@@ -140,7 +140,7 @@ function HomeClient() {
           const japaneseAnimeData: DoubanResult = await japaneseAnimeResponse.json();
           setJapaneseAnime(japaneseAnimeData.list || []);
         } else {
-          console.error('日漫加載失敗:', japaneseAnimeResponse.status);
+          console.error('動畫加載失敗:', japaneseAnimeResponse.status);
         }
       } catch (error) {
         console.error('首頁數據加載錯誤:', error);
@@ -345,14 +345,14 @@ function HomeClient() {
                 </ScrollableRow>
               </section>
 
-              {/* 一週口碑榜 */}
+              {/* 最新電影 */}
               <section className='mb-8'>
                 <div className='mb-4 flex items-center justify-between'>
                   <h2 className='text-xl font-bold text-gray-800 dark:text-gray-200'>
-                    一週口碑榜
+                    最新電影
                   </h2>
                   <Link
-                    href='/douban?type=movie&tag=一周口碑榜&title=一週口碑榜'
+                    href='/douban?type=movie&tag=最新&title=最新電影'
                     className='flex items-center text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
                   >
                     查看更多
@@ -389,14 +389,14 @@ function HomeClient() {
                 </ScrollableRow>
               </section>
 
-              {/* 北美票房榜 */}
+              {/* 經典電影 */}
               <section className='mb-8'>
                 <div className='mb-4 flex items-center justify-between'>
                   <h2 className='text-xl font-bold text-gray-800 dark:text-gray-200'>
-                    北美票房榜
+                    經典電影
                   </h2>
                   <Link
-                    href='/douban?type=movie&tag=北美票房榜&title=北美票房榜'
+                    href='/douban?type=movie&tag=经典&title=經典電影'
                     className='flex items-center text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
                   >
                     查看更多
@@ -565,14 +565,14 @@ function HomeClient() {
                 </ScrollableRow>
               </section>
 
-              {/* 日漫 */}
+              {/* 動畫 */}
               <section className='mb-8'>
                 <div className='mb-4 flex items-center justify-between'>
                   <h2 className='text-xl font-bold text-gray-800 dark:text-gray-200'>
-                    日漫
+                    動畫
                   </h2>
                   <Link
-                    href='/douban?type=tv&tag=日漫&title=日漫'
+                    href='/douban?type=tv&tag=动画&title=動畫'
                     className='flex items-center text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
                   >
                     查看更多
