@@ -95,14 +95,21 @@ export async function GET(request: Request) {
   }
 
   // 構建豆瓣 API URL
-  let target = `https://movie.douban.com/j/search_subjects?type=${type}&tag=${tag}&sort=${sort}&page_limit=${pageSize}&page_start=${pageStart}`;
+  let target = `https://movie.douban.com/j/search_subjects?type=${type}&tag=${encodeURIComponent(tag)}&sort=${sort}&page_limit=${pageSize}&page_start=${pageStart}`;
   
-  // 添加篩選參數
-  if (year) target += `&year_range=${year}`;
-  if (region) target += `&countries=${region}`;
-  if (genres) target += `&genres=${genres}`;
+  // 添加篩選參數 - 使用正確的豆瓣 API 參數格式
+  if (year) target += `&year_range=${year},${year}`;
+  if (region) target += `&countries=${encodeURIComponent(region)}`;
+  if (genres) {
+    // 將多個類型用逗號分隔
+    const genreList = genres.split(',').map(g => encodeURIComponent(g.trim())).join(',');
+    target += `&genres=${genreList}`;
+  }
 
   try {
+    // 添加調試日誌
+    console.log('豆瓣 API URL:', target);
+    
     // 调用豆瓣 API
     const doubanData = await fetchDoubanData(target);
 
@@ -120,6 +127,8 @@ export async function GET(request: Request) {
       list: list,
     };
 
+    console.log(`豆瓣數據獲取成功: ${list.length} 項目`);
+
     const cacheTime = getCacheTime();
     return NextResponse.json(response, {
       headers: {
@@ -127,6 +136,8 @@ export async function GET(request: Request) {
       },
     });
   } catch (error) {
+    console.error('豆瓣 API 錯誤:', error);
+    console.error('請求 URL:', target);
     return NextResponse.json(
       { error: '获取豆瓣数据失败', details: (error as Error).message },
       { status: 500 }
