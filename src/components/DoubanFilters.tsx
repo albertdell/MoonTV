@@ -11,7 +11,6 @@ interface FilterOptions {
 
 interface DoubanFiltersProps {
   type: string;
-  tag: string;
   onFiltersChange: (filters: FilterOptions) => void;
   hideRegion?: boolean; // 美劇、韓劇、日劇、日漫不顯示地區選項
 }
@@ -116,7 +115,6 @@ const SORT_OPTIONS = [
 
 export default function DoubanFilters({ 
   type, 
-  tag, 
   onFiltersChange, 
   hideRegion = false 
 }: DoubanFiltersProps) {
@@ -129,7 +127,7 @@ export default function DoubanFilters({
 
   const genres = type === 'movie' ? MOVIE_GENRES : TV_GENRES;
 
-  const handleFilterChange = (key: keyof FilterOptions, value: any) => {
+  const handleFilterChange = (key: keyof FilterOptions, value: string | string[]) => {
     const newFilters = { ...filters, [key]: value };
     setFilters(newFilters);
     onFiltersChange(newFilters);
