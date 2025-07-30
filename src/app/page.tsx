@@ -84,7 +84,7 @@ function HomeClient() {
           fetch('/api/douban?type=tv&tag=美剧'),
           fetch('/api/douban?type=tv&tag=韩剧'),
           fetch('/api/douban?type=tv&tag=日剧'),
-          fetch('/api/douban?type=tv&tag=动画'),
+          fetch('/api/douban?type=tv&tag=日本动画'),
         ]);
 
         if (moviesResponse.ok) {
@@ -572,7 +572,7 @@ function HomeClient() {
                     動畫
                   </h2>
                   <Link
-                    href='/douban?type=tv&tag=动画&title=動畫'
+                    href='/douban?type=tv&tag=日本动画&title=動畫'
                     className='flex items-center text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
                   >
                     查看更多
