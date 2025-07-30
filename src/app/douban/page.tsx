@@ -2,7 +2,7 @@
 
 import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { DoubanItem, DoubanResult } from '@/lib/types';
 
@@ -50,7 +50,7 @@ function DoubanPageClient() {
   };
 
   // 構建查詢參數
-  const buildQueryParams = (pageStart: number = 0) => {
+  const buildQueryParams = useCallback((pageStart = 0) => {
     const params = new URLSearchParams({
       type: type || '',
       tag: tag || '',
@@ -64,7 +64,7 @@ function DoubanPageClient() {
     if (filters.genres.length > 0) params.append('genres', filters.genres.join(','));
 
     return params.toString();
-  };
+  }, [type, tag, filters, hideRegion]);
 
   useEffect(() => {
     if (!type || !tag) {
@@ -106,7 +106,7 @@ function DoubanPageClient() {
     };
 
     loadInitialData();
-  }, [type, tag, filters]);
+  }, [type, tag, filters, buildQueryParams]);
 
   // 单独处理 currentPage 变化（加载更多）
   useEffect(() => {
@@ -140,7 +140,7 @@ function DoubanPageClient() {
 
       fetchMoreData();
     }
-  }, [currentPage, type, tag]);
+  }, [currentPage, type, tag, buildQueryParams]);
 
   // 设置滚动监听
   useEffect(() => {
@@ -216,7 +216,6 @@ function DoubanPageClient() {
         {type && tag && (
           <DoubanFilters
             type={type}
-            tag={tag}
             onFiltersChange={handleFiltersChange}
             hideRegion={hideRegion}
           />
