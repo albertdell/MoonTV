@@ -46,6 +46,7 @@ function DoubanPageClient() {
 
   // 處理篩選器變更
   const handleFiltersChange = (newFilters: FilterOptions) => {
+    console.log('篩選器變更:', newFilters);
     setFilters(newFilters);
   };
 
@@ -59,9 +60,9 @@ function DoubanPageClient() {
       sort: filters.sort,
     });
 
-    if (filters.year) params.append('year', filters.year);
-    if (filters.region && !hideRegion) params.append('region', filters.region);
-    if (filters.genres.length > 0) params.append('genres', filters.genres.join(','));
+    if (filters.year) params.set('year', filters.year);
+    if (filters.region && !hideRegion) params.set('region', filters.region);
+    if (filters.genres.length > 0) params.set('genres', filters.genres.join(','));
 
     return params.toString();
   }, [type, tag, filters, hideRegion]);
@@ -84,7 +85,9 @@ function DoubanPageClient() {
     const loadInitialData = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`/api/douban?${buildQueryParams(0)}`);
+        const queryString = buildQueryParams(0);
+        console.log('篩選請求 URL:', `/api/douban?${queryString}`);
+        const response = await fetch(`/api/douban?${queryString}`);
 
         if (!response.ok) {
           throw new Error('获取豆瓣数据失败');
@@ -114,10 +117,9 @@ function DoubanPageClient() {
       const fetchMoreData = async () => {
         try {
           setIsLoadingMore(true);
-
-          const response = await fetch(
-            `/api/douban?${buildQueryParams(currentPage * 25)}`
-          );
+          const queryString = buildQueryParams(currentPage * 25);
+          console.log('加載更多請求 URL:', `/api/douban?${queryString}`);
+          const response = await fetch(`/api/douban?${queryString}`);
 
           if (!response.ok) {
             throw new Error('获取豆瓣数据失败');
