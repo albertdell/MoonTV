@@ -94,34 +94,6 @@ export async function GET(request: Request) {
     return handleTop250(pageStart);
   }
 
-  // 參考 LibreTV 的簡化方式 - 優先使用單一標籤
-  function buildOptimalTag(baseTag: string, filters: {
-    year?: string;
-    region?: string;
-    genres?: string[];
-  }): string {
-    // 優先級：類型 > 地區 > 年份
-    // 因為豆瓣標籤系統更適合單一維度的篩選
-    
-    if (filters.genres && filters.genres.length > 0) {
-      // 如果有類型篩選，優先使用類型
-      return filters.genres[0];
-    }
-    
-    if (filters.region && filters.region !== '') {
-      // 如果有地區篩選，使用地區
-      return filters.region;
-    }
-    
-    if (filters.year && filters.year !== '') {
-      // 如果有年份篩選，組合年份
-      return `${baseTag},${filters.year}`;
-    }
-    
-    // 默認使用原始標籤
-    return baseTag;
-  }
-
   // 構建篩選條件
   const filters = {
     year: year || undefined,
@@ -129,16 +101,37 @@ export async function GET(request: Request) {
     genres: genres ? genres.split(',').filter(g => g.trim() !== '') : undefined,
   };
 
-  // 使用 LibreTV 風格的簡化標籤策略
-  const optimizedTag = buildOptimalTag(tag, filters);
-  const target = `https://movie.douban.com/j/search_subjects?type=${type}&tag=${encodeURIComponent(optimizedTag)}&sort=${sort}&page_limit=${pageSize}&page_start=${pageStart}`;
+  // 測試：如果沒有篩選條件，使用原始標籤
+  let finalTag = tag;
+  
+  // 只有在有篩選條件時才修改標籤
+  if (filters.year || filters.region || (filters.genres && filters.genres.length > 0)) {
+    const tagParts: string[] = [tag];
+    
+    // 謹慎添加篩選條件
+    if (filters.year && filters.year !== '') {
+      tagParts.push(filters.year);
+    }
+    
+    if (filters.region && filters.region !== '') {
+      tagParts.push(filters.region);
+    }
+    
+    if (filters.genres && filters.genres.length > 0) {
+      tagParts.push(filters.genres[0]);
+    }
+    
+    finalTag = tagParts.join(',');
+  }
+
+  const target = `https://movie.douban.com/j/search_subjects?type=${type}&tag=${encodeURIComponent(finalTag)}&sort=${sort}&page_limit=${pageSize}&page_start=${pageStart}`;
 
   try {
     // 添加調試日誌 (開發環境)
     if (process.env.NODE_ENV === 'development') {
       console.log('豆瓣 API URL:', target);
       console.log('原始標籤:', tag);
-      console.log('優化標籤:', optimizedTag);
+      console.log('最終標籤:', finalTag);
       console.log('篩選條件:', filters);
     }
     
