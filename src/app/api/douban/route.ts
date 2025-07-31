@@ -94,21 +94,51 @@ export async function GET(request: Request) {
     return handleTop250(pageStart);
   }
 
-  // 構建豆瓣 API URL
-  let target = `https://movie.douban.com/j/search_subjects?type=${type}&tag=${encodeURIComponent(tag)}&sort=${sort}&page_limit=${pageSize}&page_start=${pageStart}`;
-  
-  // 添加篩選參數 - 使用正確的豆瓣 API 參數格式
-  if (year) target += `&year_range=${year},${year}`;
-  if (region) target += `&countries=${encodeURIComponent(region)}`;
-  if (genres) {
-    // 將多個類型用逗號分隔
-    const genreList = genres.split(',').map(g => encodeURIComponent(g.trim())).join(',');
-    target += `&genres=${genreList}`;
+  // 參考 LibreTV 的簡化方式 - 優先使用單一標籤
+  function buildOptimalTag(baseTag: string, filters: {
+    year?: string;
+    region?: string;
+    genres?: string[];
+  }): string {
+    // 優先級：類型 > 地區 > 年份
+    // 因為豆瓣標籤系統更適合單一維度的篩選
+    
+    if (filters.genres && filters.genres.length > 0) {
+      // 如果有類型篩選，優先使用類型
+      return filters.genres[0];
+    }
+    
+    if (filters.region && filters.region !== '') {
+      // 如果有地區篩選，使用地區
+      return filters.region;
+    }
+    
+    if (filters.year && filters.year !== '') {
+      // 如果有年份篩選，組合年份
+      return `${baseTag},${filters.year}`;
+    }
+    
+    // 默認使用原始標籤
+    return baseTag;
   }
+
+  // 構建篩選條件
+  const filters = {
+    year: year || undefined,
+    region: region || undefined,
+    genres: genres ? genres.split(',').filter(g => g.trim() !== '') : undefined,
+  };
+
+  // 使用 LibreTV 風格的簡化標籤策略
+  const optimizedTag = buildOptimalTag(tag, filters);
+  let target = `https://movie.douban.com/j/search_subjects?type=${type}&tag=${encodeURIComponent(optimizedTag)}&sort=${sort}&page_limit=${pageSize}&page_start=${pageStart}`;
 
   try {
     // 添加調試日誌
     console.log('豆瓣 API URL:', target);
+    console.log('原始標籤:', tag);
+    console.log('優化標籤:', optimizedTag);
+    console.log('篩選條件:', filters);
     
     // 调用豆瓣 API
     const doubanData = await fetchDoubanData(target);
