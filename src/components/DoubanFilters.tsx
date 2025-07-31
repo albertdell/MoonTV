@@ -165,14 +165,12 @@ export default function DoubanFilters({
 
   const genres = type === 'movie' ? MOVIE_GENRES : TV_GENRES;
 
-  // 映射篩選值到豆瓣API格式
+  // 簡化映射 - 直接使用原始值，讓豆瓣自己處理
   const mapFiltersToApi = (filters: FilterOptions): FilterOptions => {
     return {
-      year: filters.year ? (TAG_MAPPING.years[filters.year] || filters.year) : '',
-      region: filters.region ? (TAG_MAPPING.regions[filters.region] || filters.region) : '',
-      genres: filters.genres.map(genre => 
-        TAG_MAPPING.genres[genre] || genre
-      ),
+      year: filters.year,
+      region: filters.region,
+      genres: filters.genres,
       sort: filters.sort,
     };
   };

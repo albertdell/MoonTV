@@ -127,16 +127,25 @@ export async function GET(request: Request) {
   const target = `https://movie.douban.com/j/search_subjects?type=${type}&tag=${encodeURIComponent(finalTag)}&sort=${sort}&page_limit=${pageSize}&page_start=${pageStart}`;
 
   try {
-    // 添加調試日誌 (開發環境)
-    if (process.env.NODE_ENV === 'development') {
-      console.log('豆瓣 API URL:', target);
-      console.log('原始標籤:', tag);
-      console.log('最終標籤:', finalTag);
-      console.log('篩選條件:', filters);
+    // 添加調試日誌 - 生產環境也顯示，方便調試
+    console.log('豆瓣 API URL:', target);
+    console.log('原始標籤:', tag);
+    console.log('最終標籤:', finalTag);
+    console.log('篩選條件:', filters);
+    console.log('請求環境:', process.env.NODE_ENV);
+    
+    // 使用代理服務器調用豆瓣 API
+    const proxyUrl = `/api/proxy?url=${encodeURIComponent(target)}`;
+    console.log('使用代理 URL:', proxyUrl);
+    
+    const response = await fetch(proxyUrl);
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(`代理請求失敗: ${errorData.error || response.statusText}`);
     }
     
-    // 调用豆瓣 API
-    const doubanData = await fetchDoubanData(target);
+    const doubanData = await response.json();
 
     // 转换数据格式
     const list: DoubanItem[] = doubanData.subjects.map((item) => ({
@@ -165,8 +174,19 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error('豆瓣 API 錯誤:', error);
     console.error('請求 URL:', target);
+    console.error('錯誤詳情:', {
+      message: (error as Error).message,
+      name: (error as Error).name,
+      stack: (error as Error).stack
+    });
+    
     return NextResponse.json(
-      { error: '获取豆瓣数据失败', details: (error as Error).message },
+      { 
+        error: '获取豆瓣数据失败', 
+        details: (error as Error).message,
+        url: target,
+        filters: filters
+      },
       { status: 500 }
     );
   }

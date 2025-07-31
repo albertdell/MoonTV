@@ -22,13 +22,15 @@ async function fetchDoubanTags(type: 'movie' | 'tv'): Promise<string[]> {
   };
 
   try {
-    // 使用豆瓣官方標籤 API - 參考 LibreTV
+    // 使用代理服務器調用豆瓣標籤 API
     const url = `https://movie.douban.com/j/search_tags?type=${type}`;
-    const response = await fetch(url, fetchOptions);
+    const proxyUrl = `/api/proxy?url=${encodeURIComponent(url)}`;
+    
+    const response = await fetch(proxyUrl);
     clearTimeout(timeoutId);
 
     if (!response.ok) {
-      throw new Error(`HTTP error! Status: ${response.status}`);
+      throw new Error(`代理請求失敗: ${response.status}`);
     }
 
     const data: DoubanTagsResponse = await response.json();
