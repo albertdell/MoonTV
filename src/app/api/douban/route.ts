@@ -131,14 +131,16 @@ export async function GET(request: Request) {
 
   // 使用 LibreTV 風格的簡化標籤策略
   const optimizedTag = buildOptimalTag(tag, filters);
-  let target = `https://movie.douban.com/j/search_subjects?type=${type}&tag=${encodeURIComponent(optimizedTag)}&sort=${sort}&page_limit=${pageSize}&page_start=${pageStart}`;
+  const target = `https://movie.douban.com/j/search_subjects?type=${type}&tag=${encodeURIComponent(optimizedTag)}&sort=${sort}&page_limit=${pageSize}&page_start=${pageStart}`;
 
   try {
-    // 添加調試日誌
-    console.log('豆瓣 API URL:', target);
-    console.log('原始標籤:', tag);
-    console.log('優化標籤:', optimizedTag);
-    console.log('篩選條件:', filters);
+    // 添加調試日誌 (開發環境)
+    if (process.env.NODE_ENV === 'development') {
+      console.log('豆瓣 API URL:', target);
+      console.log('原始標籤:', tag);
+      console.log('優化標籤:', optimizedTag);
+      console.log('篩選條件:', filters);
+    }
     
     // 调用豆瓣 API
     const doubanData = await fetchDoubanData(target);
@@ -157,7 +159,9 @@ export async function GET(request: Request) {
       list: list,
     };
 
-    console.log(`豆瓣數據獲取成功: ${list.length} 項目`);
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`豆瓣數據獲取成功: ${list.length} 項目`);
+    }
 
     const cacheTime = getCacheTime();
     return NextResponse.json(response, {

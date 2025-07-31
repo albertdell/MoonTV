@@ -90,60 +90,62 @@ function HomeClient() {
         if (moviesResponse.ok) {
           const moviesData: DoubanResult = await moviesResponse.json();
           setHotMovies(moviesData.list || []);
-        } else {
+        } else if (process.env.NODE_ENV === 'development') {
           console.error('熱門電影加載失敗:', moviesResponse.status);
         }
 
         if (tvShowsResponse.ok) {
           const tvShowsData: DoubanResult = await tvShowsResponse.json();
           setHotTvShows(tvShowsData.list || []);
-        } else {
+        } else if (process.env.NODE_ENV === 'development') {
           console.error('熱門電視劇加載失敗:', tvShowsResponse.status);
         }
 
         if (weeklyResponse.ok) {
           const weeklyData: DoubanResult = await weeklyResponse.json();
           setWeeklyRanking(weeklyData.list || []);
-        } else {
+        } else if (process.env.NODE_ENV === 'development') {
           console.error('最新電影加載失敗:', weeklyResponse.status);
         }
 
         if (boxOfficeResponse.ok) {
           const boxOfficeData: DoubanResult = await boxOfficeResponse.json();
           setBoxOffice(boxOfficeData.list || []);
-        } else {
+        } else if (process.env.NODE_ENV === 'development') {
           console.error('經典電影加載失敗:', boxOfficeResponse.status);
         }
 
         if (usShowsResponse.ok) {
           const usShowsData: DoubanResult = await usShowsResponse.json();
           setUsShows(usShowsData.list || []);
-        } else {
+        } else if (process.env.NODE_ENV === 'development') {
           console.error('美劇加載失敗:', usShowsResponse.status);
         }
 
         if (koreanShowsResponse.ok) {
           const koreanShowsData: DoubanResult = await koreanShowsResponse.json();
           setKoreanShows(koreanShowsData.list || []);
-        } else {
+        } else if (process.env.NODE_ENV === 'development') {
           console.error('韓劇加載失敗:', koreanShowsResponse.status);
         }
 
         if (japaneseShowsResponse.ok) {
           const japaneseShowsData: DoubanResult = await japaneseShowsResponse.json();
           setJapaneseShows(japaneseShowsData.list || []);
-        } else {
+        } else if (process.env.NODE_ENV === 'development') {
           console.error('日劇加載失敗:', japaneseShowsResponse.status);
         }
 
         if (japaneseAnimeResponse.ok) {
           const japaneseAnimeData: DoubanResult = await japaneseAnimeResponse.json();
           setJapaneseAnime(japaneseAnimeData.list || []);
-        } else {
+        } else if (process.env.NODE_ENV === 'development') {
           console.error('動畫加載失敗:', japaneseAnimeResponse.status);
         }
       } catch (error) {
-        console.error('首頁數據加載錯誤:', error);
+        if (process.env.NODE_ENV === 'development') {
+          console.error('首頁數據加載錯誤:', error);
+        }
       } finally {
         setLoading(false);
       }

@@ -46,7 +46,9 @@ function DoubanPageClient() {
 
   // 處理篩選器變更
   const handleFiltersChange = (newFilters: FilterOptions) => {
-    console.log('篩選器變更:', newFilters);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('篩選器變更:', newFilters);
+    }
     setFilters(newFilters);
   };
 
@@ -86,7 +88,9 @@ function DoubanPageClient() {
       try {
         setLoading(true);
         const queryString = buildQueryParams(0);
-        console.log('篩選請求 URL:', `/api/douban?${queryString}`);
+        if (process.env.NODE_ENV === 'development') {
+          console.log('篩選請求 URL:', `/api/douban?${queryString}`);
+        }
         const response = await fetch(`/api/douban?${queryString}`);
 
         if (!response.ok) {
@@ -118,7 +122,9 @@ function DoubanPageClient() {
         try {
           setIsLoadingMore(true);
           const queryString = buildQueryParams(currentPage * 25);
-          console.log('加載更多請求 URL:', `/api/douban?${queryString}`);
+          if (process.env.NODE_ENV === 'development') {
+            console.log('加載更多請求 URL:', `/api/douban?${queryString}`);
+          }
           const response = await fetch(`/api/douban?${queryString}`);
 
           if (!response.ok) {

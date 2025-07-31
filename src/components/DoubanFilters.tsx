@@ -188,8 +188,10 @@ export default function DoubanFilters({
     
     // 映射到API格式後傳遞
     const mappedFilters = mapFiltersToApi(newFilters);
-    console.log('篩選器變更 - 原始:', newFilters);
-    console.log('篩選器變更 - 映射:', mappedFilters);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('篩選器變更 - 原始:', newFilters);
+      console.log('篩選器變更 - 映射:', mappedFilters);
+    }
     onFiltersChange(mappedFilters);
   };
 
