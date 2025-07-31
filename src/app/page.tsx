@@ -17,35 +17,42 @@ import ContinueWatching from '@/components/ContinueWatching';
 import PageLayout from '@/components/PageLayout';
 import ScrollableRow from '@/components/ScrollableRow';
 import { useSite } from '@/components/SiteProvider';
+import TagManager from '@/components/TagManager';
 import VideoCard from '@/components/VideoCard';
 
 function HomeClient() {
   const [activeTab, setActiveTab] = useState<'home' | 'favorites'>('home');
-  const [hotMovies, setHotMovies] = useState<DoubanItem[]>([]);
-  const [hotTvShows, setHotTvShows] = useState<DoubanItem[]>([]);
-  // 新增的數據狀態
-  const [weeklyRanking, setWeeklyRanking] = useState<DoubanItem[]>([]);
-  const [boxOffice, setBoxOffice] = useState<DoubanItem[]>([]);
-  const [usShows, setUsShows] = useState<DoubanItem[]>([]);
-  const [koreanShows, setKoreanShows] = useState<DoubanItem[]>([]);
-  const [japaneseShows, setJapaneseShows] = useState<DoubanItem[]>([]);
-  const [japaneseAnime, setJapaneseAnime] = useState<DoubanItem[]>([]);
+  const [mediaType, setMediaType] = useState<'movie' | 'tv'>('movie');
+  const [currentTag, setCurrentTag] = useState('热门');
+  const [displayedContent, setDisplayedContent] = useState<DoubanItem[]>([]);
   const [loading, setLoading] = useState(true);
   const { announcement } = useSite();
-
   const [showAnnouncement, setShowAnnouncement] = useState(false);
+  const [isTagManagerOpen, setTagManagerOpen] = useState(false);
 
-  // 检查公告弹窗状态
+  // Default tags
+  const defaultMovieTags = ['热门', '最新', '经典', '豆瓣高分', '冷门佳片', '华语', '欧美', '韩国', '日本', '动作', '喜剧', '爱情', '科幻', '悬疑', '恐怖', '治愈'];
+  const defaultTvTags = ['热门', '美剧', '英剧', '韩剧', '日剧', '国产剧', '港剧', '日本动画', '综艺', '纪录片'];
+
+  const [movieTags, setMovieTags] = useState(defaultMovieTags);
+  const [tvTags, setTvTags] = useState(defaultTvTags);
+
+
+  // Load tags from localStorage on mount
   useEffect(() => {
-    if (typeof window !== 'undefined' && announcement) {
-      const hasSeenAnnouncement = localStorage.getItem('hasSeenAnnouncement');
-      if (hasSeenAnnouncement !== announcement) {
-        setShowAnnouncement(true);
-      } else {
-        setShowAnnouncement(Boolean(!hasSeenAnnouncement && announcement));
+    try {
+      const savedMovieTags = localStorage.getItem('userMovieTags');
+      if (savedMovieTags) {
+        setMovieTags(JSON.parse(savedMovieTags));
       }
+      const savedTvTags = localStorage.getItem('userTvTags');
+      if (savedTvTags) {
+        setTvTags(JSON.parse(savedTvTags));
+      }
+    } catch (e) {
+      console.error('Failed to load tags from localStorage', e);
     }
-  }, [announcement]);
+  }, []);
 
   // 收藏夹数据
   type FavoriteItem = {
@@ -61,98 +68,43 @@ function HomeClient() {
 
   const [favoriteItems, setFavoriteItems] = useState<FavoriteItem[]>([]);
 
+  // 检查公告弹窗状态
   useEffect(() => {
+    if (typeof window !== 'undefined' && announcement) {
+      const hasSeenAnnouncement = localStorage.getItem('hasSeenAnnouncement');
+      if (hasSeenAnnouncement !== announcement) {
+        setShowAnnouncement(true);
+      } else {
+        setShowAnnouncement(Boolean(!hasSeenAnnouncement && announcement));
+      }
+    }
+  }, [announcement]);
+
+  // 获取豆瓣数据
+  useEffect(() => {
+    if (activeTab === 'favorites') return;
+
     const fetchDoubanData = async () => {
+      setLoading(true);
       try {
-        setLoading(true);
-
-        // 并行获取所有數據
-        const [
-          moviesResponse, 
-          tvShowsResponse,
-          weeklyResponse,
-          boxOfficeResponse,
-          usShowsResponse,
-          koreanShowsResponse,
-          japaneseShowsResponse,
-          japaneseAnimeResponse
-        ] = await Promise.all([
-          fetch('/api/douban?type=movie&tag=热门'),
-          fetch('/api/douban?type=tv&tag=热门'),
-          fetch('/api/douban?type=movie&tag=最新'),
-          fetch('/api/douban?type=movie&tag=经典'),
-          fetch('/api/douban?type=tv&tag=美剧'),
-          fetch('/api/douban?type=tv&tag=韩剧'),
-          fetch('/api/douban?type=tv&tag=日剧'),
-          fetch('/api/douban?type=tv&tag=日本动画'),
-        ]);
-
-        if (moviesResponse.ok) {
-          const moviesData: DoubanResult = await moviesResponse.json();
-          setHotMovies(moviesData.list || []);
-        } else if (process.env.NODE_ENV === 'development') {
-          console.error('熱門電影加載失敗:', moviesResponse.status);
-        }
-
-        if (tvShowsResponse.ok) {
-          const tvShowsData: DoubanResult = await tvShowsResponse.json();
-          setHotTvShows(tvShowsData.list || []);
-        } else if (process.env.NODE_ENV === 'development') {
-          console.error('熱門電視劇加載失敗:', tvShowsResponse.status);
-        }
-
-        if (weeklyResponse.ok) {
-          const weeklyData: DoubanResult = await weeklyResponse.json();
-          setWeeklyRanking(weeklyData.list || []);
-        } else if (process.env.NODE_ENV === 'development') {
-          console.error('最新電影加載失敗:', weeklyResponse.status);
-        }
-
-        if (boxOfficeResponse.ok) {
-          const boxOfficeData: DoubanResult = await boxOfficeResponse.json();
-          setBoxOffice(boxOfficeData.list || []);
-        } else if (process.env.NODE_ENV === 'development') {
-          console.error('經典電影加載失敗:', boxOfficeResponse.status);
-        }
-
-        if (usShowsResponse.ok) {
-          const usShowsData: DoubanResult = await usShowsResponse.json();
-          setUsShows(usShowsData.list || []);
-        } else if (process.env.NODE_ENV === 'development') {
-          console.error('美劇加載失敗:', usShowsResponse.status);
-        }
-
-        if (koreanShowsResponse.ok) {
-          const koreanShowsData: DoubanResult = await koreanShowsResponse.json();
-          setKoreanShows(koreanShowsData.list || []);
-        } else if (process.env.NODE_ENV === 'development') {
-          console.error('韓劇加載失敗:', koreanShowsResponse.status);
-        }
-
-        if (japaneseShowsResponse.ok) {
-          const japaneseShowsData: DoubanResult = await japaneseShowsResponse.json();
-          setJapaneseShows(japaneseShowsData.list || []);
-        } else if (process.env.NODE_ENV === 'development') {
-          console.error('日劇加載失敗:', japaneseShowsResponse.status);
-        }
-
-        if (japaneseAnimeResponse.ok) {
-          const japaneseAnimeData: DoubanResult = await japaneseAnimeResponse.json();
-          setJapaneseAnime(japaneseAnimeData.list || []);
-        } else if (process.env.NODE_ENV === 'development') {
-          console.error('動畫加載失敗:', japaneseAnimeResponse.status);
+        const response = await fetch(`/api/douban?type=${mediaType}&tag=${currentTag}`);
+        if (response.ok) {
+          const data: DoubanResult = await response.json();
+          setDisplayedContent(data.list || []);
+        } else {
+          console.error('Failed to fetch Douban data:', response.status);
+          setDisplayedContent([]);
         }
       } catch (error) {
-        if (process.env.NODE_ENV === 'development') {
-          console.error('首頁數據加載錯誤:', error);
-        }
+        console.error('Error fetching Douban data:', error);
+        setDisplayedContent([]);
       } finally {
         setLoading(false);
       }
     };
 
     fetchDoubanData();
-  }, []);
+  }, [mediaType, currentTag, activeTab]);
 
   // 当切换到收藏夹时加载收藏数据
   useEffect(() => {
@@ -195,6 +147,16 @@ function HomeClient() {
   const handleCloseAnnouncement = (announcement: string) => {
     setShowAnnouncement(false);
     localStorage.setItem('hasSeenAnnouncement', announcement); // 记录已查看弹窗
+  };
+
+  const handleTagsChange = (newTags: string[]) => {
+    if (mediaType === 'movie') {
+      setMovieTags(newTags);
+      localStorage.setItem('userMovieTags', JSON.stringify(newTags));
+    } else {
+      setTvTags(newTags);
+      localStorage.setItem('userTvTags', JSON.stringify(newTags));
+    }
   };
 
   return (
@@ -252,30 +214,48 @@ function HomeClient() {
           ) : (
             // 首页视图
             <>
-              {/* 继续观看 */}
               <ContinueWatching />
-
-              {/* 热门电影 */}
-              <section className='mb-8'>
-                <div className='mb-4 flex items-center justify-between'>
-                  <h2 className='text-xl font-bold text-gray-800 dark:text-gray-200'>
-                    热门电影
-                  </h2>
-                  <Link
-                    href='/douban?type=movie&tag=热门&title=热门电影'
-                    className='flex items-center text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+              <div className='mb-8 flex justify-center'>
+                <CapsuleSwitch
+                  options={[
+                    { label: '电影', value: 'movie' },
+                    { label: '电视剧', value: 'tv' },
+                  ]}
+                  active={mediaType}
+                  onChange={(value) => {
+                    setMediaType(value as 'movie' | 'tv');
+                    setCurrentTag('热门'); // Reset tag on media type change
+                  }}
+                />
+              </div>
+              <div className="flex flex-wrap justify-center items-center gap-2 mb-8">
+                {(mediaType === 'movie' ? movieTags : tvTags).map(tag => (
+                  <button
+                    key={tag}
+                    onClick={() => setCurrentTag(tag)}
+                    className={`px-4 py-2 text-sm font-medium rounded-full transition-colors ${
+                      currentTag === tag
+                        ? 'bg-blue-500 text-white'
+                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600'
+                    }`}
                   >
-                    查看更多
-                    <ChevronRight className='w-4 h-4 ml-1' />
-                  </Link>
-                </div>
-                <ScrollableRow>
+                    {tag}
+                  </button>
+                ))}
+                <button
+                    onClick={() => setTagManagerOpen(true)}
+                    className="px-3 py-1 text-sm font-medium rounded-full transition-colors bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
+                >
+                    管理
+                </button>
+              </div>
+              <section className='mb-8'>
+                <div className='justify-start grid grid-cols-3 gap-x-2 gap-y-14 sm:gap-y-20 px-2 sm:grid-cols-[repeat(auto-fill,_minmax(11rem,_1fr))] sm:gap-x-8 sm:px-4'>
                   {loading
-                    ? // 加载状态显示灰色占位数据
-                      Array.from({ length: 8 }).map((_, index) => (
+                    ? Array.from({ length: 16 }).map((_, index) => (
                         <div
                           key={index}
-                          className='min-w-[96px] w-24 sm:min-w-[180px] sm:w-44'
+                          className='w-full'
                         >
                           <div className='relative aspect-[2/3] w-full overflow-hidden rounded-lg bg-gray-200 animate-pulse dark:bg-gray-800'>
                             <div className='absolute inset-0 bg-gray-300 dark:bg-gray-700'></div>
@@ -283,101 +263,10 @@ function HomeClient() {
                           <div className='mt-2 h-4 bg-gray-200 rounded animate-pulse dark:bg-gray-800'></div>
                         </div>
                       ))
-                    : // 显示真实数据
-                      hotMovies.map((movie, index) => (
+                    : displayedContent.map((item, index) => (
                         <div
                           key={index}
-                          className='min-w-[96px] w-24 sm:min-w-[180px] sm:w-44'
-                        >
-                          <VideoCard
-                            from='douban'
-                            title={movie.title}
-                            poster={movie.poster}
-                            douban_id={movie.id}
-                            rate={movie.rate}
-                          />
-                        </div>
-                      ))}
-                </ScrollableRow>
-              </section>
-
-              {/* 热门剧集 */}
-              <section className='mb-8'>
-                <div className='mb-4 flex items-center justify-between'>
-                  <h2 className='text-xl font-bold text-gray-800 dark:text-gray-200'>
-                    热门剧集
-                  </h2>
-                  <Link
-                    href='/douban?type=tv&tag=热门&title=热门剧集'
-                    className='flex items-center text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
-                  >
-                    查看更多
-                    <ChevronRight className='w-4 h-4 ml-1' />
-                  </Link>
-                </div>
-                <ScrollableRow>
-                  {loading
-                    ? // 加载状态显示灰色占位数据
-                      Array.from({ length: 8 }).map((_, index) => (
-                        <div
-                          key={index}
-                          className='min-w-[96px] w-24 sm:min-w-[180px] sm:w-44'
-                        >
-                          <div className='relative aspect-[2/3] w-full overflow-hidden rounded-lg bg-gray-200 animate-pulse dark:bg-gray-800'>
-                            <div className='absolute inset-0 bg-gray-300 dark:bg-gray-700'></div>
-                          </div>
-                          <div className='mt-2 h-4 bg-gray-200 rounded animate-pulse dark:bg-gray-800'></div>
-                        </div>
-                      ))
-                    : // 显示真实数据
-                      hotTvShows.map((show, index) => (
-                        <div
-                          key={index}
-                          className='min-w-[96px] w-24 sm:min-w-[180px] sm:w-44'
-                        >
-                          <VideoCard
-                            from='douban'
-                            title={show.title}
-                            poster={show.poster}
-                            douban_id={show.id}
-                            rate={show.rate}
-                          />
-                        </div>
-                      ))}
-                </ScrollableRow>
-              </section>
-
-              {/* 最新電影 */}
-              <section className='mb-8'>
-                <div className='mb-4 flex items-center justify-between'>
-                  <h2 className='text-xl font-bold text-gray-800 dark:text-gray-200'>
-                    最新電影
-                  </h2>
-                  <Link
-                    href='/douban?type=movie&tag=最新&title=最新電影'
-                    className='flex items-center text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
-                  >
-                    查看更多
-                    <ChevronRight className='w-4 h-4 ml-1' />
-                  </Link>
-                </div>
-                <ScrollableRow>
-                  {loading
-                    ? Array.from({ length: 8 }).map((_, index) => (
-                        <div
-                          key={index}
-                          className='min-w-[96px] w-24 sm:min-w-[180px] sm:w-44'
-                        >
-                          <div className='relative aspect-[2/3] w-full overflow-hidden rounded-lg bg-gray-200 animate-pulse dark:bg-gray-800'>
-                            <div className='absolute inset-0 bg-gray-300 dark:bg-gray-700'></div>
-                          </div>
-                          <div className='mt-2 h-4 bg-gray-200 rounded animate-pulse dark:bg-gray-800'></div>
-                        </div>
-                      ))
-                    : weeklyRanking.map((item, index) => (
-                        <div
-                          key={index}
-                          className='min-w-[96px] w-24 sm:min-w-[180px] sm:w-44'
+                          className='w-full'
                         >
                           <VideoCard
                             from='douban'
@@ -388,227 +277,7 @@ function HomeClient() {
                           />
                         </div>
                       ))}
-                </ScrollableRow>
-              </section>
-
-              {/* 經典電影 */}
-              <section className='mb-8'>
-                <div className='mb-4 flex items-center justify-between'>
-                  <h2 className='text-xl font-bold text-gray-800 dark:text-gray-200'>
-                    經典電影
-                  </h2>
-                  <Link
-                    href='/douban?type=movie&tag=经典&title=經典電影'
-                    className='flex items-center text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
-                  >
-                    查看更多
-                    <ChevronRight className='w-4 h-4 ml-1' />
-                  </Link>
                 </div>
-                <ScrollableRow>
-                  {loading
-                    ? Array.from({ length: 8 }).map((_, index) => (
-                        <div
-                          key={index}
-                          className='min-w-[96px] w-24 sm:min-w-[180px] sm:w-44'
-                        >
-                          <div className='relative aspect-[2/3] w-full overflow-hidden rounded-lg bg-gray-200 animate-pulse dark:bg-gray-800'>
-                            <div className='absolute inset-0 bg-gray-300 dark:bg-gray-700'></div>
-                          </div>
-                          <div className='mt-2 h-4 bg-gray-200 rounded animate-pulse dark:bg-gray-800'></div>
-                        </div>
-                      ))
-                    : boxOffice.map((item, index) => (
-                        <div
-                          key={index}
-                          className='min-w-[96px] w-24 sm:min-w-[180px] sm:w-44'
-                        >
-                          <VideoCard
-                            from='douban'
-                            title={item.title}
-                            poster={item.poster}
-                            douban_id={item.id}
-                            rate={item.rate}
-                          />
-                        </div>
-                      ))}
-                </ScrollableRow>
-              </section>
-
-              {/* 美劇 */}
-              <section className='mb-8'>
-                <div className='mb-4 flex items-center justify-between'>
-                  <h2 className='text-xl font-bold text-gray-800 dark:text-gray-200'>
-                    美劇
-                  </h2>
-                  <Link
-                    href='/douban?type=tv&tag=美剧&title=美劇'
-                    className='flex items-center text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
-                  >
-                    查看更多
-                    <ChevronRight className='w-4 h-4 ml-1' />
-                  </Link>
-                </div>
-                <ScrollableRow>
-                  {loading
-                    ? Array.from({ length: 8 }).map((_, index) => (
-                        <div
-                          key={index}
-                          className='min-w-[96px] w-24 sm:min-w-[180px] sm:w-44'
-                        >
-                          <div className='relative aspect-[2/3] w-full overflow-hidden rounded-lg bg-gray-200 animate-pulse dark:bg-gray-800'>
-                            <div className='absolute inset-0 bg-gray-300 dark:bg-gray-700'></div>
-                          </div>
-                          <div className='mt-2 h-4 bg-gray-200 rounded animate-pulse dark:bg-gray-800'></div>
-                        </div>
-                      ))
-                    : usShows.map((item, index) => (
-                        <div
-                          key={index}
-                          className='min-w-[96px] w-24 sm:min-w-[180px] sm:w-44'
-                        >
-                          <VideoCard
-                            from='douban'
-                            title={item.title}
-                            poster={item.poster}
-                            douban_id={item.id}
-                            rate={item.rate}
-                          />
-                        </div>
-                      ))}
-                </ScrollableRow>
-              </section>
-
-              {/* 韓劇 */}
-              <section className='mb-8'>
-                <div className='mb-4 flex items-center justify-between'>
-                  <h2 className='text-xl font-bold text-gray-800 dark:text-gray-200'>
-                    韓劇
-                  </h2>
-                  <Link
-                    href='/douban?type=tv&tag=韩剧&title=韓劇'
-                    className='flex items-center text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
-                  >
-                    查看更多
-                    <ChevronRight className='w-4 h-4 ml-1' />
-                  </Link>
-                </div>
-                <ScrollableRow>
-                  {loading
-                    ? Array.from({ length: 8 }).map((_, index) => (
-                        <div
-                          key={index}
-                          className='min-w-[96px] w-24 sm:min-w-[180px] sm:w-44'
-                        >
-                          <div className='relative aspect-[2/3] w-full overflow-hidden rounded-lg bg-gray-200 animate-pulse dark:bg-gray-800'>
-                            <div className='absolute inset-0 bg-gray-300 dark:bg-gray-700'></div>
-                          </div>
-                          <div className='mt-2 h-4 bg-gray-200 rounded animate-pulse dark:bg-gray-800'></div>
-                        </div>
-                      ))
-                    : koreanShows.map((item, index) => (
-                        <div
-                          key={index}
-                          className='min-w-[96px] w-24 sm:min-w-[180px] sm:w-44'
-                        >
-                          <VideoCard
-                            from='douban'
-                            title={item.title}
-                            poster={item.poster}
-                            douban_id={item.id}
-                            rate={item.rate}
-                          />
-                        </div>
-                      ))}
-                </ScrollableRow>
-              </section>
-
-              {/* 日劇 */}
-              <section className='mb-8'>
-                <div className='mb-4 flex items-center justify-between'>
-                  <h2 className='text-xl font-bold text-gray-800 dark:text-gray-200'>
-                    日劇
-                  </h2>
-                  <Link
-                    href='/douban?type=tv&tag=日剧&title=日劇'
-                    className='flex items-center text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
-                  >
-                    查看更多
-                    <ChevronRight className='w-4 h-4 ml-1' />
-                  </Link>
-                </div>
-                <ScrollableRow>
-                  {loading
-                    ? Array.from({ length: 8 }).map((_, index) => (
-                        <div
-                          key={index}
-                          className='min-w-[96px] w-24 sm:min-w-[180px] sm:w-44'
-                        >
-                          <div className='relative aspect-[2/3] w-full overflow-hidden rounded-lg bg-gray-200 animate-pulse dark:bg-gray-800'>
-                            <div className='absolute inset-0 bg-gray-300 dark:bg-gray-700'></div>
-                          </div>
-                          <div className='mt-2 h-4 bg-gray-200 rounded animate-pulse dark:bg-gray-800'></div>
-                        </div>
-                      ))
-                    : japaneseShows.map((item, index) => (
-                        <div
-                          key={index}
-                          className='min-w-[96px] w-24 sm:min-w-[180px] sm:w-44'
-                        >
-                          <VideoCard
-                            from='douban'
-                            title={item.title}
-                            poster={item.poster}
-                            douban_id={item.id}
-                            rate={item.rate}
-                          />
-                        </div>
-                      ))}
-                </ScrollableRow>
-              </section>
-
-              {/* 動畫 */}
-              <section className='mb-8'>
-                <div className='mb-4 flex items-center justify-between'>
-                  <h2 className='text-xl font-bold text-gray-800 dark:text-gray-200'>
-                    動畫
-                  </h2>
-                  <Link
-                    href='/douban?type=tv&tag=日本动画&title=動畫'
-                    className='flex items-center text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
-                  >
-                    查看更多
-                    <ChevronRight className='w-4 h-4 ml-1' />
-                  </Link>
-                </div>
-                <ScrollableRow>
-                  {loading
-                    ? Array.from({ length: 8 }).map((_, index) => (
-                        <div
-                          key={index}
-                          className='min-w-[96px] w-24 sm:min-w-[180px] sm:w-44'
-                        >
-                          <div className='relative aspect-[2/3] w-full overflow-hidden rounded-lg bg-gray-200 animate-pulse dark:bg-gray-800'>
-                            <div className='absolute inset-0 bg-gray-300 dark:bg-gray-700'></div>
-                          </div>
-                          <div className='mt-2 h-4 bg-gray-200 rounded animate-pulse dark:bg-gray-800'></div>
-                        </div>
-                      ))
-                    : japaneseAnime.map((item, index) => (
-                        <div
-                          key={index}
-                          className='min-w-[96px] w-24 sm:min-w-[180px] sm:w-44'
-                        >
-                          <VideoCard
-                            from='douban'
-                            title={item.title}
-                            poster={item.poster}
-                            douban_id={item.id}
-                            rate={item.rate}
-                          />
-                        </div>
-                      ))}
-                </ScrollableRow>
               </section>
             </>
           )}
@@ -648,9 +317,18 @@ function HomeClient() {
           </div>
         </div>
       )}
+      <TagManager
+        isOpen={isTagManagerOpen}
+        onClose={() => setTagManagerOpen(false)}
+        tags={mediaType === 'movie' ? movieTags : tvTags}
+        onTagsChange={handleTagsChange}
+        defaultTags={mediaType === 'movie' ? defaultMovieTags : defaultTvTags}
+        mediaType={mediaType}
+      />
     </PageLayout>
   );
 }
+
 
 export default function Home() {
   return (
