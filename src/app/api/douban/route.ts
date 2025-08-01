@@ -12,7 +12,7 @@ interface DoubanApiResponse {
   }>;
 }
 
-async function fetchDoubanData(url: string): Promise<DoubanApiResponse> {
+async function _fetchDoubanData(url: string): Promise<DoubanApiResponse> {
   // 添加超时控制
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 10000); // 10秒超时
@@ -113,17 +113,8 @@ export async function GET(request: Request) {
   const target = `https://movie.douban.com/j/search_subjects?type=${type}&tag=${encodeURIComponent(finalTag)}&sort=${sort}&page_limit=${pageSize}&page_start=${pageStart}`;
 
   try {
-    if (process.env.NODE_ENV === 'development') {
-      console.log('豆瓣請求 URL:', target);
-      console.log('原始標籤:', tag, '最終標籤:', finalTag);
-      console.log('篩選參數 - 年份:', year, '地區:', region, '類型:', genres);
-    }
-    
     // 使用代理服務器調用豆瓣 API
     const proxyUrl = `/api/proxy?url=${encodeURIComponent(target)}`;
-    if (process.env.NODE_ENV === 'development') {
-      console.log('使用代理 URL:', proxyUrl);
-    }
     
     const apiResponse = await fetch(proxyUrl);
     
@@ -135,7 +126,7 @@ export async function GET(request: Request) {
     const doubanData = await apiResponse.json();
 
     // 转换数据格式
-    const list: DoubanItem[] = doubanData.subjects.map((item) => ({
+    const list: DoubanItem[] = doubanData.subjects.map((item: any) => ({
       id: item.id,
       title: item.title,
       poster: item.cover,
@@ -148,9 +139,7 @@ export async function GET(request: Request) {
       list: list,
     };
 
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`豆瓣數據獲取成功: ${list.length} 項目`);
-    }
+    // 數據獲取成功
 
     const cacheTime = getCacheTime();
     return NextResponse.json(result, {
@@ -159,17 +148,7 @@ export async function GET(request: Request) {
       },
     });
   } catch (error) {
-    if (process.env.NODE_ENV === 'development') {
-      console.error('豆瓣 API 錯誤:', error);
-    }
-    if (process.env.NODE_ENV === 'development') {
-      console.error('請求 URL:', target);
-      console.error('錯誤詳情:', {
-        message: (error as Error).message,
-        name: (error as Error).name,
-        stack: (error as Error).stack
-      });
-    }
+    // 錯誤處理
     
     return NextResponse.json(
       { 

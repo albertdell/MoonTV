@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import React, { useState, useEffect } from 'react';
 
 interface DoubanTagSystemProps {
   type: 'movie' | 'tv';
@@ -34,7 +34,7 @@ const DoubanTagSystem: React.FC<DoubanTagSystemProps> = ({ type }) => {
           setTags(type === 'movie' ? [...DEFAULT_MOVIE_TAGS] : [...DEFAULT_TV_TAGS]);
         }
       } catch (e) {
-        console.error('載入標籤失敗：', e);
+        // 載入標籤失敗，使用默認值
         setTags(type === 'movie' ? [...DEFAULT_MOVIE_TAGS] : [...DEFAULT_TV_TAGS]);
       }
     };
@@ -49,7 +49,7 @@ const DoubanTagSystem: React.FC<DoubanTagSystemProps> = ({ type }) => {
       localStorage.setItem(storageKey, JSON.stringify(newTags));
       setTags(newTags);
     } catch (e) {
-      console.error('保存標籤失敗：', e);
+      // 保存標籤失敗，靜默處理
     }
   };
 

@@ -8,7 +8,7 @@ import { DoubanItem, DoubanResult } from '@/lib/types';
 
 import DoubanCardSkeleton from '@/components/DoubanCardSkeleton';
 import DoubanFilters from '@/components/DoubanFilters';
-import DoubanTagManager from '@/components/DoubanTagManager';
+import DoubanTagSystem from '@/components/DoubanTagSystem';
 import PageLayout from '@/components/PageLayout';
 import VideoCard from '@/components/VideoCard';
 
@@ -47,9 +47,6 @@ function DoubanPageClient() {
 
   // 處理篩選器變更
   const handleFiltersChange = (newFilters: FilterOptions) => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log('篩選器變更:', newFilters);
-    }
     setFilters(newFilters);
   };
 
@@ -89,9 +86,6 @@ function DoubanPageClient() {
       try {
         setLoading(true);
         const queryString = buildQueryParams(0);
-        if (process.env.NODE_ENV === 'development') {
-          console.log('篩選請求 URL:', `/api/douban?${queryString}`);
-        }
         const response = await fetch(`/api/douban?${queryString}`);
 
         if (!response.ok) {
@@ -123,9 +117,6 @@ function DoubanPageClient() {
         try {
           setIsLoadingMore(true);
           const queryString = buildQueryParams(currentPage * 25);
-          if (process.env.NODE_ENV === 'development') {
-            console.log('加載更多請求 URL:', `/api/douban?${queryString}`);
-          }
           const response = await fetch(`/api/douban?${queryString}`);
 
           if (!response.ok) {
@@ -221,14 +212,10 @@ function DoubanPageClient() {
           <p className='text-gray-600 dark:text-gray-400'>来自豆瓣的精选内容</p>
         </div>
 
-        {/* 標籤管理器 - 參考 LibreTV 的實現 */}
+        {/* 標籤系統 - 完全按照 LibreTV 的實現 */}
         {type && (
-          <DoubanTagManager
+          <DoubanTagSystem
             type={type as 'movie' | 'tv'}
-            currentTag={tag || '热门'}
-            onTagChange={(newTag) => {
-              // 標籤變更會通過 router.push 自動觸發頁面重新載入
-            }}
           />
         )}
 
