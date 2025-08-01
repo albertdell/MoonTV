@@ -115,6 +115,8 @@ export async function GET(request: Request) {
   try {
     // 使用代理服務器調用豆瓣 API
     const proxyUrl = `/api/proxy?url=${encodeURIComponent(target)}`;
+    console.log('豆瓣請求 URL:', target);
+    console.log('代理 URL:', proxyUrl);
     
     const apiResponse = await fetch(proxyUrl);
     
@@ -148,7 +150,8 @@ export async function GET(request: Request) {
       },
     });
   } catch (error) {
-    // 錯誤處理
+    console.error('豆瓣 API 錯誤:', error);
+    console.error('請求 URL:', target);
     
     return NextResponse.json(
       { 
