@@ -94,45 +94,30 @@ export async function GET(request: Request) {
     return handleTop250(pageStart);
   }
 
-  // 構建篩選條件
-  const filters = {
-    year: year || undefined,
-    region: region || undefined,
-    genres: genres ? genres.split(',').filter(g => g.trim() !== '') : undefined,
-  };
-
-  // 測試：如果沒有篩選條件，使用原始標籤
+  // 參考 LibreTV 的實現 - 簡化篩選邏輯
+  // 豆瓣 API 最好的方式是使用單一標籤，而不是組合多個篩選條件
   let finalTag = tag;
   
-  // 只有在有篩選條件時才修改標籤
-  if (filters.year || filters.region || (filters.genres && filters.genres.length > 0)) {
-    const tagParts: string[] = [tag];
-    
-    // 謹慎添加篩選條件
-    if (filters.year && filters.year !== '') {
-      tagParts.push(filters.year);
+  // 優先級：類型 > 地區 > 年份 > 原始標籤
+  if (genres && genres !== '') {
+    const genreList = genres.split(',').filter(g => g.trim() !== '');
+    if (genreList.length > 0) {
+      finalTag = genreList[0]; // 使用第一個類型
     }
-    
-    if (filters.region && filters.region !== '') {
-      tagParts.push(filters.region);
-    }
-    
-    if (filters.genres && filters.genres.length > 0) {
-      tagParts.push(filters.genres[0]);
-    }
-    
-    finalTag = tagParts.join(',');
+  } else if (region && region !== '') {
+    finalTag = region; // 使用地區
+  } else if (year && year !== '') {
+    finalTag = year; // 使用年份
   }
 
   const target = `https://movie.douban.com/j/search_subjects?type=${type}&tag=${encodeURIComponent(finalTag)}&sort=${sort}&page_limit=${pageSize}&page_start=${pageStart}`;
 
   try {
-    // 添加調試日誌 - 生產環境也顯示，方便調試
-    console.log('豆瓣 API URL:', target);
-    console.log('原始標籤:', tag);
-    console.log('最終標籤:', finalTag);
-    console.log('篩選條件:', filters);
-    console.log('請求環境:', process.env.NODE_ENV);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('豆瓣請求 URL:', target);
+      console.log('原始標籤:', tag, '最終標籤:', finalTag);
+      console.log('篩選參數 - 年份:', year, '地區:', region, '類型:', genres);
+    }
     
     // 使用代理服務器調用豆瓣 API
     const proxyUrl = `/api/proxy?url=${encodeURIComponent(target)}`;
@@ -185,7 +170,13 @@ export async function GET(request: Request) {
         error: '获取豆瓣数据失败', 
         details: (error as Error).message,
         url: target,
-        filters: filters
+        filters: {
+          originalTag: tag,
+          finalTag: finalTag,
+          year: year,
+          region: region,
+          genres: genres
+        }
       },
       { status: 500 }
     );

@@ -8,6 +8,7 @@ import { DoubanItem, DoubanResult } from '@/lib/types';
 
 import DoubanCardSkeleton from '@/components/DoubanCardSkeleton';
 import DoubanFilters from '@/components/DoubanFilters';
+import DoubanTagManager from '@/components/DoubanTagManager';
 import PageLayout from '@/components/PageLayout';
 import VideoCard from '@/components/VideoCard';
 
@@ -219,6 +220,17 @@ function DoubanPageClient() {
           </h1>
           <p className='text-gray-600 dark:text-gray-400'>来自豆瓣的精选内容</p>
         </div>
+
+        {/* 標籤管理器 - 參考 LibreTV 的實現 */}
+        {type && (
+          <DoubanTagManager
+            type={type as 'movie' | 'tv'}
+            currentTag={tag || '热门'}
+            onTagChange={(newTag) => {
+              // 標籤變更會通過 router.push 自動觸發頁面重新載入
+            }}
+          />
+        )}
 
         {/* 篩選器 */}
         {type && tag && (
