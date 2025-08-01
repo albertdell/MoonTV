@@ -12,7 +12,7 @@ interface DoubanApiResponse {
   }>;
 }
 
-async function _fetchDoubanData(url: string): Promise<DoubanApiResponse> {
+async function fetchDoubanData(url: string): Promise<DoubanApiResponse> {
   // 添加超时控制
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 10000); // 10秒超时
@@ -54,12 +54,6 @@ export async function GET(request: Request) {
   const tag = searchParams.get('tag');
   const pageSize = parseInt(searchParams.get('pageSize') || '16');
   const pageStart = parseInt(searchParams.get('pageStart') || '0');
-  
-  // 新增篩選參數
-  const year = searchParams.get('year');
-  const region = searchParams.get('region');
-  const genres = searchParams.get('genres');
-  const sort = searchParams.get('sort') || 'recommend';
 
   // 验证参数
   if (!type || !tag) {
@@ -94,78 +88,35 @@ export async function GET(request: Request) {
     return handleTop250(pageStart);
   }
 
-  // 參考 LibreTV 的實現 - 簡化篩選邏輯
-  // 豆瓣 API 最好的方式是使用單一標籤，而不是組合多個篩選條件
-  let finalTag = tag;
-  
-  // 優先級：類型 > 地區 > 年份 > 原始標籤
-  if (genres && genres !== '') {
-    const genreList = genres.split(',').filter(g => g.trim() !== '');
-    if (genreList.length > 0) {
-      finalTag = genreList[0]; // 使用第一個類型
-    }
-  } else if (region && region !== '') {
-    finalTag = region; // 使用地區
-  } else if (year && year !== '') {
-    finalTag = year; // 使用年份
-  }
-
-  const target = `https://movie.douban.com/j/search_subjects?type=${type}&tag=${encodeURIComponent(finalTag)}&sort=${sort}&page_limit=${pageSize}&page_start=${pageStart}`;
+  const target = `https://movie.douban.com/j/search_subjects?type=${type}&tag=${tag}&sort=recommend&page_limit=${pageSize}&page_start=${pageStart}`;
 
   try {
-    // 使用代理服務器調用豆瓣 API
-    const proxyUrl = `/api/proxy?url=${encodeURIComponent(target)}`;
-    console.log('豆瓣請求 URL:', target);
-    console.log('代理 URL:', proxyUrl);
-    
-    const apiResponse = await fetch(proxyUrl);
-    
-    if (!apiResponse.ok) {
-      const errorData = await apiResponse.json();
-      throw new Error(`代理請求失敗: ${errorData.error || apiResponse.statusText}`);
-    }
-    
-    const doubanData = await apiResponse.json();
+    // 调用豆瓣 API
+    const doubanData = await fetchDoubanData(target);
 
     // 转换数据格式
-    const list: DoubanItem[] = doubanData.subjects.map((item: any) => ({
+    const list: DoubanItem[] = doubanData.subjects.map((item) => ({
       id: item.id,
       title: item.title,
       poster: item.cover,
       rate: item.rate,
     }));
 
-    const result: DoubanResult = {
+    const response: DoubanResult = {
       code: 200,
       message: '获取成功',
       list: list,
     };
 
-    // 數據獲取成功
-
     const cacheTime = getCacheTime();
-    return NextResponse.json(result, {
+    return NextResponse.json(response, {
       headers: {
         'Cache-Control': `public, max-age=${cacheTime}`,
       },
     });
   } catch (error) {
-    console.error('豆瓣 API 錯誤:', error);
-    console.error('請求 URL:', target);
-    
     return NextResponse.json(
-      { 
-        error: '获取豆瓣数据失败', 
-        details: (error as Error).message,
-        url: target,
-        filters: {
-          originalTag: tag,
-          finalTag: finalTag,
-          year: year,
-          region: region,
-          genres: genres
-        }
-      },
+      { error: '获取豆瓣数据失败', details: (error as Error).message },
       { status: 500 }
     );
   }
@@ -223,14 +174,14 @@ function handleTop250(pageStart: number) {
         });
       }
 
-      const top250Result: DoubanResult = {
+      const apiResponse: DoubanResult = {
         code: 200,
         message: '获取成功',
         list: movies,
       };
 
       const cacheTime = getCacheTime();
-      return NextResponse.json(top250Result, {
+      return NextResponse.json(apiResponse, {
         headers: {
           'Cache-Control': `public, max-age=${cacheTime}`,
         },

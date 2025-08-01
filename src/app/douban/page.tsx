@@ -2,22 +2,13 @@
 
 import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { DoubanItem, DoubanResult } from '@/lib/types';
 
 import DoubanCardSkeleton from '@/components/DoubanCardSkeleton';
-import DoubanFilters from '@/components/DoubanFilters';
-import DoubanTagSystem from '@/components/DoubanTagSystem';
 import PageLayout from '@/components/PageLayout';
 import VideoCard from '@/components/VideoCard';
-
-interface FilterOptions {
-  year: string;
-  region: string;
-  genres: string[];
-  sort: string;
-}
 
 function DoubanPageClient() {
   const searchParams = useSearchParams();
@@ -27,45 +18,14 @@ function DoubanPageClient() {
   const [currentPage, setCurrentPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [filters, setFilters] = useState<FilterOptions>({
-    year: '',
-    region: '',
-    genres: [],
-    sort: 'recommend',
-  });
   const observerRef = useRef<IntersectionObserver | null>(null);
   const loadingRef = useRef<HTMLDivElement>(null);
 
   const type = searchParams.get('type');
   const tag = searchParams.get('tag');
-  
-  // 檢查是否需要隱藏地區選項（美劇、韓劇、日劇、日漫）
-  const hideRegion = ['美剧', '韩剧', '日剧', '日漫'].includes(tag || '');
 
   // 生成骨架屏数据
   const skeletonData = Array.from({ length: 25 }, (_, index) => index);
-
-  // 處理篩選器變更
-  const handleFiltersChange = (newFilters: FilterOptions) => {
-    setFilters(newFilters);
-  };
-
-  // 構建查詢參數
-  const buildQueryParams = useCallback((pageStart = 0) => {
-    const params = new URLSearchParams({
-      type: type || '',
-      tag: tag || '',
-      pageSize: '25',
-      pageStart: pageStart.toString(),
-      sort: filters.sort,
-    });
-
-    if (filters.year) params.set('year', filters.year);
-    if (filters.region && !hideRegion) params.set('region', filters.region);
-    if (filters.genres.length > 0) params.set('genres', filters.genres.join(','));
-
-    return params.toString();
-  }, [type, tag, filters, hideRegion]);
 
   useEffect(() => {
     if (!type || !tag) {
@@ -85,17 +45,15 @@ function DoubanPageClient() {
     const loadInitialData = async () => {
       try {
         setLoading(true);
-        const queryString = buildQueryParams(0);
-        console.log('發送請求到:', `/api/douban?${queryString}`);
-        const response = await fetch(`/api/douban?${queryString}`);
+        const response = await fetch(
+          `/api/douban?type=${type}&tag=${tag}&pageSize=25&pageStart=0`
+        );
 
         if (!response.ok) {
-          console.error('API 響應錯誤:', response.status, response.statusText);
           throw new Error('获取豆瓣数据失败');
         }
 
         const data: DoubanResult = await response.json();
-        console.log('收到數據:', data);
 
         if (data.code === 200) {
           setDoubanData(data.list);
@@ -111,7 +69,7 @@ function DoubanPageClient() {
     };
 
     loadInitialData();
-  }, [type, tag, filters, buildQueryParams]);
+  }, [type, tag]);
 
   // 单独处理 currentPage 变化（加载更多）
   useEffect(() => {
@@ -119,8 +77,12 @@ function DoubanPageClient() {
       const fetchMoreData = async () => {
         try {
           setIsLoadingMore(true);
-          const queryString = buildQueryParams(currentPage * 25);
-          const response = await fetch(`/api/douban?${queryString}`);
+
+          const response = await fetch(
+            `/api/douban?type=${type}&tag=${tag}&pageSize=25&pageStart=${
+              currentPage * 25
+            }`
+          );
 
           if (!response.ok) {
             throw new Error('获取豆瓣数据失败');
@@ -143,7 +105,7 @@ function DoubanPageClient() {
 
       fetchMoreData();
     }
-  }, [currentPage, type, tag, buildQueryParams]);
+  }, [currentPage, type, tag]);
 
   // 设置滚动监听
   useEffect(() => {
@@ -214,22 +176,6 @@ function DoubanPageClient() {
           </h1>
           <p className='text-gray-600 dark:text-gray-400'>来自豆瓣的精选内容</p>
         </div>
-
-        {/* 標籤系統 - 完全按照 LibreTV 的實現 */}
-        {type && (
-          <DoubanTagSystem
-            type={type as 'movie' | 'tv'}
-          />
-        )}
-
-        {/* 篩選器 */}
-        {type && tag && (
-          <DoubanFilters
-            type={type}
-            onFiltersChange={handleFiltersChange}
-            hideRegion={hideRegion}
-          />
-        )}
 
         {/* 内容展示区域 */}
         <div className='max-w-[95%] mx-auto mt-8 overflow-visible'>
