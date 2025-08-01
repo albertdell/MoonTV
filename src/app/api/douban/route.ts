@@ -121,16 +121,18 @@ export async function GET(request: Request) {
     
     // 使用代理服務器調用豆瓣 API
     const proxyUrl = `/api/proxy?url=${encodeURIComponent(target)}`;
-    console.log('使用代理 URL:', proxyUrl);
-    
-    const response = await fetch(proxyUrl);
-    
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(`代理請求失敗: ${errorData.error || response.statusText}`);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('使用代理 URL:', proxyUrl);
     }
     
-    const doubanData = await response.json();
+    const apiResponse = await fetch(proxyUrl);
+    
+    if (!apiResponse.ok) {
+      const errorData = await apiResponse.json();
+      throw new Error(`代理請求失敗: ${errorData.error || apiResponse.statusText}`);
+    }
+    
+    const doubanData = await apiResponse.json();
 
     // 转换数据格式
     const list: DoubanItem[] = doubanData.subjects.map((item) => ({
@@ -140,7 +142,7 @@ export async function GET(request: Request) {
       rate: item.rate,
     }));
 
-    const response: DoubanResult = {
+    const result: DoubanResult = {
       code: 200,
       message: '获取成功',
       list: list,
@@ -151,19 +153,23 @@ export async function GET(request: Request) {
     }
 
     const cacheTime = getCacheTime();
-    return NextResponse.json(response, {
+    return NextResponse.json(result, {
       headers: {
         'Cache-Control': `public, max-age=${cacheTime}`,
       },
     });
   } catch (error) {
-    console.error('豆瓣 API 錯誤:', error);
-    console.error('請求 URL:', target);
-    console.error('錯誤詳情:', {
-      message: (error as Error).message,
-      name: (error as Error).name,
-      stack: (error as Error).stack
-    });
+    if (process.env.NODE_ENV === 'development') {
+      console.error('豆瓣 API 錯誤:', error);
+    }
+    if (process.env.NODE_ENV === 'development') {
+      console.error('請求 URL:', target);
+      console.error('錯誤詳情:', {
+        message: (error as Error).message,
+        name: (error as Error).name,
+        stack: (error as Error).stack
+      });
+    }
     
     return NextResponse.json(
       { 
@@ -235,14 +241,14 @@ function handleTop250(pageStart: number) {
         });
       }
 
-      const apiResponse: DoubanResult = {
+      const top250Result: DoubanResult = {
         code: 200,
         message: '获取成功',
         list: movies,
       };
 
       const cacheTime = getCacheTime();
-      return NextResponse.json(apiResponse, {
+      return NextResponse.json(top250Result, {
         headers: {
           'Cache-Control': `public, max-age=${cacheTime}`,
         },
