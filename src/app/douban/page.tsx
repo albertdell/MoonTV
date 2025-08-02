@@ -13,9 +13,6 @@ import PageLayout from '@/components/PageLayout';
 import VideoCard from '@/components/VideoCard';
 
 interface FilterOptions {
-  year: string;
-  region: string;
-  genres: string[];
   sort: string;
 }
 
@@ -28,9 +25,6 @@ function DoubanPageClient() {
   const [hasMore, setHasMore] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [filters, setFilters] = useState<FilterOptions>({
-    year: '',
-    region: '',
-    genres: [],
     sort: 'recommend',
   });
   const observerRef = useRef<IntersectionObserver | null>(null);
@@ -38,9 +32,6 @@ function DoubanPageClient() {
 
   const type = searchParams.get('type');
   const tag = searchParams.get('tag');
-  
-  // 檢查是否需要隱藏地區選項（美劇、韓劇、日劇、日漫）
-  const hideRegion = ['美剧', '韩剧', '日剧', '日漫'].includes(tag || '');
 
   // 生成骨架屏数据
   const skeletonData = Array.from({ length: 25 }, (_, index) => index);
@@ -60,12 +51,8 @@ function DoubanPageClient() {
       sort: filters.sort,
     });
 
-    if (filters.year) params.set('year', filters.year);
-    if (filters.region && !hideRegion) params.set('region', filters.region);
-    if (filters.genres.length > 0) params.set('genres', filters.genres.join(','));
-
     return params.toString();
-  }, [type, tag, filters, hideRegion]);
+  }, [type, tag, filters]);
 
   useEffect(() => {
     if (!type || !tag) {
@@ -222,12 +209,11 @@ function DoubanPageClient() {
           />
         )}
 
-        {/* 篩選器 */}
+        {/* 排序器 */}
         {type && tag && (
           <DoubanFilters
             type={type}
             onFiltersChange={handleFiltersChange}
-            hideRegion={hideRegion}
           />
         )}
 
