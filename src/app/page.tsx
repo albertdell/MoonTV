@@ -17,28 +17,59 @@ import ContinueWatching from '@/components/ContinueWatching';
 import PageLayout from '@/components/PageLayout';
 import ScrollableRow from '@/components/ScrollableRow';
 import { useSite } from '@/components/SiteProvider';
+import TagManager from '@/components/TagManager';
 import VideoCard from '@/components/VideoCard';
 
 function HomeClient() {
   const [activeTab, setActiveTab] = useState<'home' | 'favorites'>('home');
-  const [hotMovies, setHotMovies] = useState<DoubanItem[]>([]);
-  const [hotTvShows, setHotTvShows] = useState<DoubanItem[]>([]);
+  const [mediaType, setMediaType] = useState<'movie' | 'tv'>('movie');
+  const [currentTag, setCurrentTag] = useState('热门');
+  const [displayedContent, setDisplayedContent] = useState<DoubanItem[]>([]);
   const [loading, setLoading] = useState(true);
   const { announcement } = useSite();
-
   const [showAnnouncement, setShowAnnouncement] = useState(false);
+  const [isTagManagerOpen, setTagManagerOpen] = useState(false);
 
-  // 检查公告弹窗状态
+  // Default tags
+  const defaultMovieTags = ['热门', '最新', '经典', '豆瓣高分', '冷门佳片', '华语', '欧美', '韩国', '日本', '动作', '喜剧', '爱情', '科幻', '悬疑', '恐怖', '治愈'];
+  const defaultTvTags = ['热门', '美剧', '英剧', '韩剧', '日剧', '国产剧', '港剧', '日本动画', '综艺', '纪录片'];
+
+  const [movieTags, setMovieTags] = useState(defaultMovieTags);
+  const [tvTags, setTvTags] = useState(defaultTvTags);
+
+
+  // Load tags from localStorage on mount - 完全照抄 LibreTV 的 loadUserTags 邏輯
   useEffect(() => {
-    if (typeof window !== 'undefined' && announcement) {
-      const hasSeenAnnouncement = localStorage.getItem('hasSeenAnnouncement');
-      if (hasSeenAnnouncement !== announcement) {
-        setShowAnnouncement(true);
-      } else {
-        setShowAnnouncement(Boolean(!hasSeenAnnouncement && announcement));
+    const loadUserTags = () => {
+      try {
+        // 嘗試從本地存儲加載用戶保存的標籤
+        const savedMovieTags = localStorage.getItem('userMovieTags');
+        const savedTvTags = localStorage.getItem('userTvTags');
+        
+        // 如果本地存儲中有標籤數據，則使用它
+        if (savedMovieTags) {
+          setMovieTags(JSON.parse(savedMovieTags));
+        } else {
+          // 否則使用默認標籤
+          setMovieTags([...defaultMovieTags]);
+        }
+        
+        if (savedTvTags) {
+          setTvTags(JSON.parse(savedTvTags));
+        } else {
+          // 否則使用默認標籤
+          setTvTags([...defaultTvTags]);
+        }
+      } catch (e) {
+        console.error('加載標籤失敗：', e);
+        // 初始化為默認值，防止錯誤
+        setMovieTags([...defaultMovieTags]);
+        setTvTags([...defaultTvTags]);
       }
-    }
-  }, [announcement]);
+    };
+
+    loadUserTags();
+  }, []);
 
   // 收藏夹数据
   type FavoriteItem = {
@@ -54,33 +85,43 @@ function HomeClient() {
 
   const [favoriteItems, setFavoriteItems] = useState<FavoriteItem[]>([]);
 
+  // 检查公告弹窗状态
   useEffect(() => {
+    if (typeof window !== 'undefined' && announcement) {
+      const hasSeenAnnouncement = localStorage.getItem('hasSeenAnnouncement');
+      if (hasSeenAnnouncement !== announcement) {
+        setShowAnnouncement(true);
+      } else {
+        setShowAnnouncement(Boolean(!hasSeenAnnouncement && announcement));
+      }
+    }
+  }, [announcement]);
+
+  // 获取豆瓣数据
+  useEffect(() => {
+    if (activeTab === 'favorites') return;
+
     const fetchDoubanData = async () => {
+      setLoading(true);
       try {
-        setLoading(true);
-
-        // 并行获取热门电影和热门剧集
-        const [moviesResponse, tvShowsResponse] = await Promise.all([
-          fetch('/api/douban?type=movie&tag=热门'),
-          fetch('/api/douban?type=tv&tag=热门'),
-        ]);
-
-        if (moviesResponse.ok) {
-          const moviesData: DoubanResult = await moviesResponse.json();
-          setHotMovies(moviesData.list);
+        const response = await fetch(`/api/douban?type=${mediaType}&tag=${currentTag}`);
+        if (response.ok) {
+          const data: DoubanResult = await response.json();
+          setDisplayedContent(data.list || []);
+        } else {
+          console.error('Failed to fetch Douban data:', response.status);
+          setDisplayedContent([]);
         }
-
-        if (tvShowsResponse.ok) {
-          const tvShowsData: DoubanResult = await tvShowsResponse.json();
-          setHotTvShows(tvShowsData.list);
-        }
+      } catch (error) {
+        console.error('Error fetching Douban data:', error);
+        setDisplayedContent([]);
       } finally {
         setLoading(false);
       }
     };
 
     fetchDoubanData();
-  }, []);
+  }, [mediaType, currentTag, activeTab]);
 
   // 当切换到收藏夹时加载收藏数据
   useEffect(() => {
@@ -123,6 +164,25 @@ function HomeClient() {
   const handleCloseAnnouncement = (announcement: string) => {
     setShowAnnouncement(false);
     localStorage.setItem('hasSeenAnnouncement', announcement); // 记录已查看弹窗
+  };
+
+  const handleTagsChange = (newTags: string[]) => {
+    if (mediaType === 'movie') {
+      setMovieTags(newTags);
+      localStorage.setItem('userMovieTags', JSON.stringify(newTags));
+    } else {
+      setTvTags(newTags);
+      localStorage.setItem('userTvTags', JSON.stringify(newTags));
+    }
+  };
+
+  // 處理標籤切換 - 完全照抄 LibreTV 的邏輯
+  const handleTagChange = (tag: string) => {
+    if (currentTag !== tag) {
+      setCurrentTag(tag);
+      // 重新加載內容
+      setLoading(true);
+    }
   };
 
   return (
@@ -180,30 +240,55 @@ function HomeClient() {
           ) : (
             // 首页视图
             <>
-              {/* 继续观看 */}
               <ContinueWatching />
+              <div className='mb-8 flex justify-center'>
+                <CapsuleSwitch
+                  options={[
+                    { label: '电影', value: 'movie' },
+                    { label: '电视剧', value: 'tv' },
+                  ]}
+                  active={mediaType}
+                  onChange={(value) => {
+                    setMediaType(value as 'movie' | 'tv');
+                    setCurrentTag('热门'); // Reset tag on media type change
+                  }}
+                />
+              </div>
+              {/* 標籤容器 - 完全照抄 LibreTV 的 renderDoubanTags 邏輯 */}
+              <div className="flex flex-wrap gap-2 mb-8 justify-center">
+                {/* 管理標籤按鈕 - 完全照抄 LibreTV 的設計 */}
+                <button
+                  onClick={() => setTagManagerOpen(true)}
+                  className="py-1.5 px-3.5 rounded text-sm font-medium transition-all duration-300 bg-gray-800 text-gray-300 hover:bg-pink-700 hover:text-white border border-gray-600 hover:border-white flex items-center"
+                >
+                  <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                  </svg>
+                  管理标签
+                </button>
 
-              {/* 热门电影 */}
-              <section className='mb-8'>
-                <div className='mb-4 flex items-center justify-between'>
-                  <h2 className='text-xl font-bold text-gray-800 dark:text-gray-200'>
-                    热门电影
-                  </h2>
-                  <Link
-                    href='/douban?type=movie&tag=热门&title=热门电影'
-                    className='flex items-center text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+                {/* 標籤列表 - 完全照抄 LibreTV 的渲染邏輯 */}
+                {(mediaType === 'movie' ? movieTags : tvTags).map(tag => (
+                  <button
+                    key={tag}
+                    onClick={() => setCurrentTag(tag)}
+                    className={`py-1.5 px-3.5 rounded text-sm font-medium transition-all duration-300 border ${
+                      currentTag === tag
+                        ? 'bg-pink-600 text-white shadow-md border-white'
+                        : 'bg-gray-800 text-gray-300 hover:bg-pink-700 hover:text-white border-gray-600 hover:border-white'
+                    }`}
                   >
-                    查看更多
-                    <ChevronRight className='w-4 h-4 ml-1' />
-                  </Link>
-                </div>
-                <ScrollableRow>
+                    {tag}
+                  </button>
+                ))}
+              </div>
+              <section className='mb-8'>
+                <div className='justify-start grid grid-cols-3 gap-x-2 gap-y-14 sm:gap-y-20 px-2 sm:grid-cols-[repeat(auto-fill,_minmax(11rem,_1fr))] sm:gap-x-8 sm:px-4'>
                   {loading
-                    ? // 加载状态显示灰色占位数据
-                      Array.from({ length: 8 }).map((_, index) => (
+                    ? Array.from({ length: 16 }).map((_, index) => (
                         <div
                           key={index}
-                          className='min-w-[96px] w-24 sm:min-w-[180px] sm:w-44'
+                          className='w-full'
                         >
                           <div className='relative aspect-[2/3] w-full overflow-hidden rounded-lg bg-gray-200 animate-pulse dark:bg-gray-800'>
                             <div className='absolute inset-0 bg-gray-300 dark:bg-gray-700'></div>
@@ -211,68 +296,21 @@ function HomeClient() {
                           <div className='mt-2 h-4 bg-gray-200 rounded animate-pulse dark:bg-gray-800'></div>
                         </div>
                       ))
-                    : // 显示真实数据
-                      hotMovies.map((movie, index) => (
+                    : displayedContent.map((item, index) => (
                         <div
                           key={index}
-                          className='min-w-[96px] w-24 sm:min-w-[180px] sm:w-44'
+                          className='w-full'
                         >
                           <VideoCard
                             from='douban'
-                            title={movie.title}
-                            poster={movie.poster}
-                            douban_id={movie.id}
-                            rate={movie.rate}
+                            title={item.title}
+                            poster={item.poster}
+                            douban_id={item.id}
+                            rate={item.rate}
                           />
                         </div>
                       ))}
-                </ScrollableRow>
-              </section>
-
-              {/* 热门剧集 */}
-              <section className='mb-8'>
-                <div className='mb-4 flex items-center justify-between'>
-                  <h2 className='text-xl font-bold text-gray-800 dark:text-gray-200'>
-                    热门剧集
-                  </h2>
-                  <Link
-                    href='/douban?type=tv&tag=热门&title=热门剧集'
-                    className='flex items-center text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
-                  >
-                    查看更多
-                    <ChevronRight className='w-4 h-4 ml-1' />
-                  </Link>
                 </div>
-                <ScrollableRow>
-                  {loading
-                    ? // 加载状态显示灰色占位数据
-                      Array.from({ length: 8 }).map((_, index) => (
-                        <div
-                          key={index}
-                          className='min-w-[96px] w-24 sm:min-w-[180px] sm:w-44'
-                        >
-                          <div className='relative aspect-[2/3] w-full overflow-hidden rounded-lg bg-gray-200 animate-pulse dark:bg-gray-800'>
-                            <div className='absolute inset-0 bg-gray-300 dark:bg-gray-700'></div>
-                          </div>
-                          <div className='mt-2 h-4 bg-gray-200 rounded animate-pulse dark:bg-gray-800'></div>
-                        </div>
-                      ))
-                    : // 显示真实数据
-                      hotTvShows.map((show, index) => (
-                        <div
-                          key={index}
-                          className='min-w-[96px] w-24 sm:min-w-[180px] sm:w-44'
-                        >
-                          <VideoCard
-                            from='douban'
-                            title={show.title}
-                            poster={show.poster}
-                            douban_id={show.id}
-                            rate={show.rate}
-                          />
-                        </div>
-                      ))}
-                </ScrollableRow>
               </section>
             </>
           )}
@@ -312,9 +350,20 @@ function HomeClient() {
           </div>
         </div>
       )}
+      <TagManager
+        isOpen={isTagManagerOpen}
+        onClose={() => setTagManagerOpen(false)}
+        tags={mediaType === 'movie' ? movieTags : tvTags}
+        onTagsChange={handleTagsChange}
+        defaultTags={mediaType === 'movie' ? defaultMovieTags : defaultTvTags}
+        mediaType={mediaType}
+        currentTag={currentTag}
+        onTagChange={handleTagChange}
+      />
     </PageLayout>
   );
 }
+
 
 export default function Home() {
   return (
