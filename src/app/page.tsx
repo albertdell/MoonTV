@@ -26,6 +26,7 @@ function HomeClient() {
   const [currentTag, setCurrentTag] = useState('热门');
   const [displayedContent, setDisplayedContent] = useState<DoubanItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sortOrder, setSortOrder] = useState('recommend');
   const { announcement } = useSite();
   const [showAnnouncement, setShowAnnouncement] = useState(false);
   const [isTagManagerOpen, setTagManagerOpen] = useState(false);
@@ -104,7 +105,7 @@ function HomeClient() {
     const fetchDoubanData = async () => {
       setLoading(true);
       try {
-        const response = await fetch(`/api/douban?type=${mediaType}&tag=${currentTag}`);
+        const response = await fetch(`/api/douban?type=${mediaType}&tag=${currentTag}&sort=${sortOrder}`);
         if (response.ok) {
           const data: DoubanResult = await response.json();
           setDisplayedContent(data.list || []);
@@ -121,7 +122,7 @@ function HomeClient() {
     };
 
     fetchDoubanData();
-  }, [mediaType, currentTag, activeTab]);
+  }, [mediaType, currentTag, sortOrder, activeTab]);
 
   // 当切换到收藏夹时加载收藏数据
   useEffect(() => {
@@ -255,7 +256,7 @@ function HomeClient() {
                 />
               </div>
               {/* 標籤容器 - 完全照抄 LibreTV 的 renderDoubanTags 邏輯 */}
-              <div className="flex flex-wrap gap-2 mb-8 justify-center">
+              <div className="flex flex-wrap gap-2 mb-4 justify-center">
                 {/* 管理標籤按鈕 - 完全照抄 LibreTV 的設計 */}
                 <button
                   onClick={() => setTagManagerOpen(true)}
@@ -281,6 +282,24 @@ function HomeClient() {
                     {tag}
                   </button>
                 ))}
+              </div>
+
+              {/* 添加排序功能到首頁 */}
+              <div className="flex justify-center mb-8">
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+                  <div className="flex items-center gap-4">
+                    <h3 className="text-sm font-semibold text-gray-900 dark:text-white">排序:</h3>
+                    <select
+                      value={sortOrder}
+                      onChange={(e) => setSortOrder(e.target.value)}
+                      className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                      <option value="recommend">推薦排序</option>
+                      <option value="time">時間排序</option>
+                      <option value="rank">評分排序</option>
+                    </select>
+                  </div>
+                </div>
               </div>
               <section className='mb-8'>
                 <div className='justify-start grid grid-cols-3 gap-x-2 gap-y-14 sm:gap-y-20 px-2 sm:grid-cols-[repeat(auto-fill,_minmax(11rem,_1fr))] sm:gap-x-8 sm:px-4'>

@@ -10,6 +10,7 @@ import DoubanCardSkeleton from '@/components/DoubanCardSkeleton';
 import DoubanFilters from '@/components/DoubanFilters';
 import DoubanTagSystem from '@/components/DoubanTagSystem';
 import PageLayout from '@/components/PageLayout';
+import TagManager from '@/components/TagManager';
 import VideoCard from '@/components/VideoCard';
 
 interface FilterOptions {
@@ -27,6 +28,9 @@ function DoubanPageClient() {
   const [filters, setFilters] = useState<FilterOptions>({
     sort: 'recommend',
   });
+  const [isTagManagerOpen, setTagManagerOpen] = useState(false);
+  const [movieTags, setMovieTags] = useState(['热门', '最新', '经典', '豆瓣高分', '冷门佳片', '华语', '欧美', '韩国', '日本', '动作', '喜剧', '爱情', '科幻', '悬疑', '恐怖', '治愈']);
+  const [tvTags, setTvTags] = useState(['热门', '美剧', '英剧', '韩剧', '日剧', '国产剧', '港剧', '日本动画', '综艺', '纪录片']);
   const observerRef = useRef<IntersectionObserver | null>(null);
   const loadingRef = useRef<HTMLDivElement>(null);
 
@@ -35,6 +39,47 @@ function DoubanPageClient() {
 
   // 生成骨架屏数据
   const skeletonData = Array.from({ length: 25 }, (_, index) => index);
+
+  // 加載用戶標籤
+  useEffect(() => {
+    const loadUserTags = () => {
+      try {
+        const savedMovieTags = localStorage.getItem('userMovieTags');
+        const savedTvTags = localStorage.getItem('userTvTags');
+        
+        if (savedMovieTags) {
+          setMovieTags(JSON.parse(savedMovieTags));
+        }
+        
+        if (savedTvTags) {
+          setTvTags(JSON.parse(savedTvTags));
+        }
+      } catch (e) {
+        console.error('加載標籤失敗：', e);
+      }
+    };
+
+    loadUserTags();
+  }, []);
+
+  // 處理標籤變更
+  const handleTagsChange = (newTags: string[]) => {
+    if (type === 'movie') {
+      setMovieTags(newTags);
+      localStorage.setItem('userMovieTags', JSON.stringify(newTags));
+    } else {
+      setTvTags(newTags);
+      localStorage.setItem('userTvTags', JSON.stringify(newTags));
+    }
+  };
+
+  // 處理標籤切換
+  const handleTagChange = (newTag: string) => {
+    // 更新 URL 參數
+    const params = new URLSearchParams(searchParams);
+    params.set('tag', newTag);
+    window.history.pushState({}, '', `${window.location.pathname}?${params}`);
+  };
 
   // 處理篩選器變更
   const handleFiltersChange = (newFilters: FilterOptions) => {
@@ -202,11 +247,36 @@ function DoubanPageClient() {
           <p className='text-gray-600 dark:text-gray-400'>来自豆瓣的精选内容</p>
         </div>
 
-        {/* 標籤系統 - 完全按照 LibreTV 的實現 */}
+        {/* 標籤系統 - 使用與首頁相同的標籤管理 */}
         {type && (
-          <DoubanTagSystem
-            type={type as 'movie' | 'tv'}
-          />
+          <div className="mb-6">
+            <div className="flex flex-wrap gap-2 justify-center">
+              <button
+                onClick={() => setTagManagerOpen(true)}
+                className="py-1.5 px-3.5 rounded text-sm font-medium transition-all duration-300 bg-gray-800 text-gray-300 hover:bg-pink-700 hover:text-white border border-gray-600 hover:border-white flex items-center"
+              >
+                <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                </svg>
+                管理标签
+              </button>
+
+              {/* 顯示當前標籤列表 */}
+              {(type === 'movie' ? movieTags : tvTags).map(tagItem => (
+                <button
+                  key={tagItem}
+                  onClick={() => handleTagChange(tagItem)}
+                  className={`py-1.5 px-3.5 rounded text-sm font-medium transition-all duration-300 border ${
+                    tag === tagItem
+                      ? 'bg-pink-600 text-white shadow-md border-white'
+                      : 'bg-gray-800 text-gray-300 hover:bg-pink-700 hover:text-white border-gray-600 hover:border-white'
+                  }`}
+                >
+                  {tagItem}
+                </button>
+              ))}
+            </div>
+          </div>
         )}
 
         {/* 排序器 */}
@@ -286,6 +356,18 @@ function DoubanPageClient() {
             </>
           )}
         </div>
+
+        {/* TagManager 組件 */}
+        <TagManager
+          isOpen={isTagManagerOpen}
+          onClose={() => setTagManagerOpen(false)}
+          tags={type === 'movie' ? movieTags : tvTags}
+          onTagsChange={handleTagsChange}
+          defaultTags={type === 'movie' ? ['热门', '最新', '经典', '豆瓣高分', '冷门佳片', '华语', '欧美', '韩国', '日本', '动作', '喜剧', '爱情', '科幻', '悬疑', '恐怖', '治愈'] : ['热门', '美剧', '英剧', '韩剧', '日剧', '国产剧', '港剧', '日本动画', '综艺', '纪录片']}
+          mediaType={type as 'movie' | 'tv'}
+          currentTag={tag || '热门'}
+          onTagChange={handleTagChange}
+        />
       </div>
     </PageLayout>
   );
