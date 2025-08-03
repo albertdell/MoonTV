@@ -18,7 +18,7 @@ const SORT_OPTIONS = [
 ];
 
 export default function DoubanFilters({ 
-  type, 
+  type: _type, 
   onFiltersChange
 }: DoubanFiltersProps) {
   const [filters, setFilters] = useState<FilterOptions>({

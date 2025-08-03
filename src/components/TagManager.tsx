@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 
 interface TagManagerProps {
   isOpen: boolean;
@@ -60,7 +60,7 @@ const TagManager: React.FC<TagManagerProps> = ({
       const storageKey = mediaType === 'movie' ? 'userMovieTags' : 'userTvTags';
       localStorage.setItem(storageKey, JSON.stringify(newTags));
     } catch (e) {
-      console.error('保存標籤失敗：', e);
+      // console.error('保存標籤失敗：', e);
     }
 
     setNewTag('');
@@ -82,7 +82,7 @@ const TagManager: React.FC<TagManagerProps> = ({
       const storageKey = mediaType === 'movie' ? 'userMovieTags' : 'userTvTags';
       localStorage.setItem(storageKey, JSON.stringify(newTags));
     } catch (e) {
-      console.error('保存標籤失敗：', e);
+      // console.error('保存標籤失敗：', e);
     }
 
     // 如果刪除的是當前選中的標籤，切換到熱門
@@ -101,7 +101,7 @@ const TagManager: React.FC<TagManagerProps> = ({
       const storageKey = mediaType === 'movie' ? 'userMovieTags' : 'userTvTags';
       localStorage.setItem(storageKey, JSON.stringify(newTags));
     } catch (e) {
-      console.error('保存標籤失敗：', e);
+      // console.error('保存標籤失敗：', e);
     }
 
     // 如果當前標籤不在默認標籤中，切換到熱門

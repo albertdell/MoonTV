@@ -17,7 +17,6 @@ import ContinueWatching from '@/components/ContinueWatching';
 import PageLayout from '@/components/PageLayout';
 import ScrollableRow from '@/components/ScrollableRow';
 import { useSite } from '@/components/SiteProvider';
-import TagManager from '@/components/TagManager';
 import VideoCard from '@/components/VideoCard';
 
 // 定義首頁分類數據結構
@@ -46,46 +45,6 @@ function HomeClient() {
     { title: '日漫', type: 'tv', tag: '日本动画', data: [], loading: true },
   ]);
 
-  // Default tags
-  const defaultMovieTags = ['热门', '最新', '经典', '豆瓣高分', '冷门佳片', '华语', '欧美', '韩国', '日本', '动作', '喜剧', '爱情', '科幻', '悬疑', '恐怖', '治愈'];
-  const defaultTvTags = ['热门', '美剧', '英剧', '韩剧', '日剧', '国产剧', '港剧', '日本动画', '综艺', '纪录片'];
-
-  const [movieTags, setMovieTags] = useState(defaultMovieTags);
-  const [tvTags, setTvTags] = useState(defaultTvTags);
-
-
-  // Load tags from localStorage on mount - 完全照抄 LibreTV 的 loadUserTags 邏輯
-  useEffect(() => {
-    const loadUserTags = () => {
-      try {
-        // 嘗試從本地存儲加載用戶保存的標籤
-        const savedMovieTags = localStorage.getItem('userMovieTags');
-        const savedTvTags = localStorage.getItem('userTvTags');
-        
-        // 如果本地存儲中有標籤數據，則使用它
-        if (savedMovieTags) {
-          setMovieTags(JSON.parse(savedMovieTags));
-        } else {
-          // 否則使用默認標籤
-          setMovieTags([...defaultMovieTags]);
-        }
-        
-        if (savedTvTags) {
-          setTvTags(JSON.parse(savedTvTags));
-        } else {
-          // 否則使用默認標籤
-          setTvTags([...defaultTvTags]);
-        }
-      } catch (e) {
-        console.error('加載標籤失敗：', e);
-        // 初始化為默認值，防止錯誤
-        setMovieTags([...defaultMovieTags]);
-        setTvTags([...defaultTvTags]);
-      }
-    };
-
-    loadUserTags();
-  }, []);
 
   // 收藏夹数据
   type FavoriteItem = {
@@ -118,8 +77,19 @@ function HomeClient() {
     if (activeTab === 'favorites') return;
 
     const fetchAllSections = async () => {
+      const sectionsToFetch = [
+        { title: '熱門電影', type: 'movie' as const, tag: '热门', data: [], loading: true },
+        { title: '熱門劇集', type: 'tv' as const, tag: '热门', data: [], loading: true },
+        { title: '豆瓣 Top250', type: 'movie' as const, tag: 'top250', data: [], loading: true },
+        { title: '综艺', type: 'tv' as const, tag: '综艺', data: [], loading: true },
+        { title: '美剧', type: 'tv' as const, tag: '美剧', data: [], loading: true },
+        { title: '韩剧', type: 'tv' as const, tag: '韩剧', data: [], loading: true },
+        { title: '日剧', type: 'tv' as const, tag: '日剧', data: [], loading: true },
+        { title: '日漫', type: 'tv' as const, tag: '日本动画', data: [], loading: true },
+      ];
+
       const updatedSections = await Promise.all(
-        homeSections.map(async (section) => {
+        sectionsToFetch.map(async (section) => {
           try {
             const response = await fetch(`/api/douban?type=${section.type}&tag=${section.tag}&sort=time&limit=8`);
             if (response.ok) {
@@ -130,11 +100,11 @@ function HomeClient() {
                 loading: false,
               };
             } else {
-              console.error(`Failed to fetch ${section.title} data:`, response.status);
+              // console.error(`Failed to fetch ${section.title} data:`, response.status);
               return { ...section, data: [], loading: false };
             }
           } catch (error) {
-            console.error(`Error fetching ${section.title} data:`, error);
+            // console.error(`Error fetching ${section.title} data:`, error);
             return { ...section, data: [], loading: false };
           }
         })
@@ -188,24 +158,6 @@ function HomeClient() {
     localStorage.setItem('hasSeenAnnouncement', announcement); // 记录已查看弹窗
   };
 
-  const handleTagsChange = (newTags: string[]) => {
-    if (mediaType === 'movie') {
-      setMovieTags(newTags);
-      localStorage.setItem('userMovieTags', JSON.stringify(newTags));
-    } else {
-      setTvTags(newTags);
-      localStorage.setItem('userTvTags', JSON.stringify(newTags));
-    }
-  };
-
-  // 處理標籤切換 - 完全照抄 LibreTV 的邏輯
-  const handleTagChange = (tag: string) => {
-    if (currentTag !== tag) {
-      setCurrentTag(tag);
-      // 重新加載內容
-      setLoading(true);
-    }
-  };
 
   return (
     <PageLayout>
@@ -347,16 +299,6 @@ function HomeClient() {
           </div>
         </div>
       )}
-      <TagManager
-        isOpen={isTagManagerOpen}
-        onClose={() => setTagManagerOpen(false)}
-        tags={mediaType === 'movie' ? movieTags : tvTags}
-        onTagsChange={handleTagsChange}
-        defaultTags={mediaType === 'movie' ? defaultMovieTags : defaultTvTags}
-        mediaType={mediaType}
-        currentTag={currentTag}
-        onTagChange={handleTagChange}
-      />
     </PageLayout>
   );
 }

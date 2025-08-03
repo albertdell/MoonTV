@@ -1,7 +1,7 @@
 'use client';
 
-import { useRouter, useSearchParams } from 'next/navigation';
 import React, { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 interface DoubanTagSystemProps {
   type: 'movie' | 'tv';
@@ -63,7 +63,7 @@ const DoubanTagSystem: React.FC<DoubanTagSystemProps> = ({ type, specificCategor
         setTags(categoryTags);
       }
     } catch (error) {
-      console.error('載入標籤失敗:', error);
+      // console.error('載入標籤失敗:', error);
       setTags(categoryTags);
     }
   }, [type, specificCategory]);
@@ -78,7 +78,7 @@ const DoubanTagSystem: React.FC<DoubanTagSystemProps> = ({ type, specificCategor
       localStorage.setItem(storageKey, JSON.stringify(newTags));
       setTags(newTags);
     } catch (error) {
-      console.error('保存標籤失敗:', error);
+      // console.error('保存標籤失敗:', error);
     }
   };
 
@@ -114,7 +114,7 @@ const DoubanTagSystem: React.FC<DoubanTagSystemProps> = ({ type, specificCategor
     }
 
     const newTags = [...tags, safeTag];
-    saveUserTags(newTags);
+    saveTags(newTags);
     setNewTag('');
   };
 
@@ -126,7 +126,7 @@ const DoubanTagSystem: React.FC<DoubanTagSystemProps> = ({ type, specificCategor
     }
 
     const newTags = tags.filter(tag => tag !== tagToDelete);
-    saveUserTags(newTags);
+    saveTags(newTags);
 
     // 如果刪除的是當前選中的標籤，切換到熱門
     if (tagToDelete === currentTag) {
@@ -136,8 +136,8 @@ const DoubanTagSystem: React.FC<DoubanTagSystemProps> = ({ type, specificCategor
 
   // 重置為默認標籤 - 完全按照 LibreTV 的邏輯
   const resetTagsToDefault = () => {
-    const defaultTags = type === 'movie' ? [...DEFAULT_MOVIE_TAGS] : [...DEFAULT_TV_TAGS];
-    saveUserTags(defaultTags);
+    const defaultTags = getCategoryTags(type, specificCategory);
+    saveTags(defaultTags);
     setShowManageModal(false);
     
     // 如果當前標籤不在默認標籤中，切換到熱門
