@@ -5,13 +5,39 @@ import React, { useState, useEffect } from 'react';
 
 interface DoubanTagSystemProps {
   type: 'movie' | 'tv';
+  specificCategory?: string; // 新增：指定特定分類
 }
 
-// 完全按照 LibreTV 的標籤系統設計
-const DEFAULT_MOVIE_TAGS = ['热门', '最新', '经典', '豆瓣高分', '冷门佳片', '华语', '欧美', '韩国', '日本', '动作', '喜剧', '爱情', '科幻', '悬疑', '恐怖', '治愈'];
-const DEFAULT_TV_TAGS = ['热门', '美剧', '英剧', '韩剧', '日剧', '国产剧', '港剧', '日本动画', '综艺', '纪录片'];
+// 根據不同分類定義不同的標籤系統
+const getCategoryTags = (type: 'movie' | 'tv', category?: string) => {
+  if (type === 'movie') {
+    if (category === 'top250') {
+      return ['全部', '经典', '剧情', '喜剧', '动作', '爱情', '科幻', '悬疑', '恐怖', '动画'];
+    }
+    // 電影的通用標籤（類型標籤）
+    return ['热门', '最新', '经典', '豆瓣高分', '冷门佳片', '华语', '欧美', '韩国', '日本', '动作', '喜剧', '爱情', '科幻', '悬疑', '恐怖', '治愈'];
+  } else {
+    // 電視劇根據不同分類使用不同標籤
+    switch (category) {
+      case '综艺':
+        return ['热门', '脱口秀', '真人秀', '音乐', '舞蹈', '喜剧', '访谈', '游戏', '美食', '旅行', '时尚', '体育'];
+      case '美剧':
+        return ['热门', '剧情', '喜剧', '犯罪', '科幻', '奇幻', '惊悚', '动作', '爱情', '家庭', '医务', '律政'];
+      case '韩剧':
+        return ['热门', '爱情', '剧情', '喜剧', '悬疑', '古装', '现代', '家庭', '职场', '校园', '医务', '法律'];
+      case '日剧':
+        return ['热门', '剧情', '爱情', '喜剧', '悬疑', '推理', '职场', '校园', '家庭', '医务', '料理', '时代'];
+      case '日本动画':
+      case '日漫':
+        return ['热门', '冒险', '动作', '喜剧', '剧情', '奇幻', '科幻', '恋爱', '校园', '运动', '音乐', '治愈'];
+      default:
+        // 電視劇的通用標籤
+        return ['热门', '美剧', '英剧', '韩剧', '日剧', '国产剧', '港剧', '日本动画', '综艺', '纪录片'];
+    }
+  }
+};
 
-const DoubanTagSystem: React.FC<DoubanTagSystemProps> = ({ type }) => {
+const DoubanTagSystem: React.FC<DoubanTagSystemProps> = ({ type, specificCategory }) => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const currentTag = searchParams.get('tag') || '热门';
@@ -20,36 +46,39 @@ const DoubanTagSystem: React.FC<DoubanTagSystemProps> = ({ type }) => {
   const [showManageModal, setShowManageModal] = useState(false);
   const [newTag, setNewTag] = useState('');
 
-  // 載入用戶標籤 - 完全按照 LibreTV 的邏輯
+  // 根據類型和分類獲取對應的標籤
   useEffect(() => {
-    const loadUserTags = () => {
-      try {
-        const storageKey = type === 'movie' ? 'userMovieTags' : 'userTvTags';
-        const savedTags = localStorage.getItem(storageKey);
-        
-        if (savedTags) {
-          const parsedTags = JSON.parse(savedTags);
-          setTags(Array.isArray(parsedTags) ? parsedTags : (type === 'movie' ? DEFAULT_MOVIE_TAGS : DEFAULT_TV_TAGS));
-        } else {
-          setTags(type === 'movie' ? [...DEFAULT_MOVIE_TAGS] : [...DEFAULT_TV_TAGS]);
-        }
-      } catch (e) {
-        // 載入標籤失敗，使用默認值
-        setTags(type === 'movie' ? [...DEFAULT_MOVIE_TAGS] : [...DEFAULT_TV_TAGS]);
-      }
-    };
-
-    loadUserTags();
-  }, [type]);
-
-  // 保存用戶標籤 - 完全按照 LibreTV 的邏輯
-  const saveUserTags = (newTags: string[]) => {
+    const categoryTags = getCategoryTags(type, specificCategory);
+    
+    // 嘗試從localStorage加載用戶自定義標籤
+    const storageKey = specificCategory 
+      ? `user${type}Tags_${specificCategory}` 
+      : `user${type}Tags`;
+    
     try {
-      const storageKey = type === 'movie' ? 'userMovieTags' : 'userTvTags';
+      const savedTags = localStorage.getItem(storageKey);
+      if (savedTags) {
+        setTags(JSON.parse(savedTags));
+      } else {
+        setTags(categoryTags);
+      }
+    } catch (error) {
+      console.error('載入標籤失敗:', error);
+      setTags(categoryTags);
+    }
+  }, [type, specificCategory]);
+
+  // 保存標籤到localStorage
+  const saveTags = (newTags: string[]) => {
+    const storageKey = specificCategory 
+      ? `user${type}Tags_${specificCategory}` 
+      : `user${type}Tags`;
+    
+    try {
       localStorage.setItem(storageKey, JSON.stringify(newTags));
       setTags(newTags);
-    } catch (e) {
-      // 保存標籤失敗，靜默處理
+    } catch (error) {
+      console.error('保存標籤失敗:', error);
     }
   };
 

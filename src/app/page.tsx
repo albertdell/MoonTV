@@ -20,16 +20,31 @@ import { useSite } from '@/components/SiteProvider';
 import TagManager from '@/components/TagManager';
 import VideoCard from '@/components/VideoCard';
 
+// 定義首頁分類數據結構
+interface HomeSection {
+  title: string;
+  type: 'movie' | 'tv';
+  tag: string;
+  data: DoubanItem[];
+  loading: boolean;
+}
+
 function HomeClient() {
   const [activeTab, setActiveTab] = useState<'home' | 'favorites'>('home');
-  const [mediaType, setMediaType] = useState<'movie' | 'tv'>('movie');
-  const [currentTag, setCurrentTag] = useState('热门');
-  const [displayedContent, setDisplayedContent] = useState<DoubanItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [sortOrder, setSortOrder] = useState('recommend');
   const { announcement } = useSite();
   const [showAnnouncement, setShowAnnouncement] = useState(false);
-  const [isTagManagerOpen, setTagManagerOpen] = useState(false);
+
+  // 首頁分類配置 - 按照LibreTV的方式展示多個分類
+  const [homeSections, setHomeSections] = useState<HomeSection[]>([
+    { title: '熱門電影', type: 'movie', tag: '热门', data: [], loading: true },
+    { title: '熱門劇集', type: 'tv', tag: '热门', data: [], loading: true },
+    { title: '豆瓣 Top250', type: 'movie', tag: 'top250', data: [], loading: true },
+    { title: '综艺', type: 'tv', tag: '综艺', data: [], loading: true },
+    { title: '美剧', type: 'tv', tag: '美剧', data: [], loading: true },
+    { title: '韩剧', type: 'tv', tag: '韩剧', data: [], loading: true },
+    { title: '日剧', type: 'tv', tag: '日剧', data: [], loading: true },
+    { title: '日漫', type: 'tv', tag: '日本动画', data: [], loading: true },
+  ]);
 
   // Default tags
   const defaultMovieTags = ['热门', '最新', '经典', '豆瓣高分', '冷门佳片', '华语', '欧美', '韩国', '日本', '动作', '喜剧', '爱情', '科幻', '悬疑', '恐怖', '治愈'];
@@ -98,31 +113,37 @@ function HomeClient() {
     }
   }, [announcement]);
 
-  // 获取豆瓣数据
+  // 獲取首頁所有分類數據
   useEffect(() => {
     if (activeTab === 'favorites') return;
 
-    const fetchDoubanData = async () => {
-      setLoading(true);
-      try {
-        const response = await fetch(`/api/douban?type=${mediaType}&tag=${currentTag}&sort=${sortOrder}`);
-        if (response.ok) {
-          const data: DoubanResult = await response.json();
-          setDisplayedContent(data.list || []);
-        } else {
-          console.error('Failed to fetch Douban data:', response.status);
-          setDisplayedContent([]);
-        }
-      } catch (error) {
-        console.error('Error fetching Douban data:', error);
-        setDisplayedContent([]);
-      } finally {
-        setLoading(false);
-      }
+    const fetchAllSections = async () => {
+      const updatedSections = await Promise.all(
+        homeSections.map(async (section) => {
+          try {
+            const response = await fetch(`/api/douban?type=${section.type}&tag=${section.tag}&sort=time&limit=8`);
+            if (response.ok) {
+              const data: DoubanResult = await response.json();
+              return {
+                ...section,
+                data: data.list?.slice(0, 8) || [], // 限制每個分類顯示8個項目
+                loading: false,
+              };
+            } else {
+              console.error(`Failed to fetch ${section.title} data:`, response.status);
+              return { ...section, data: [], loading: false };
+            }
+          } catch (error) {
+            console.error(`Error fetching ${section.title} data:`, error);
+            return { ...section, data: [], loading: false };
+          }
+        })
+      );
+      setHomeSections(updatedSections);
     };
 
-    fetchDoubanData();
-  }, [mediaType, currentTag, sortOrder, activeTab]);
+    fetchAllSections();
+  }, [activeTab]);
 
   // 当切换到收藏夹时加载收藏数据
   useEffect(() => {
@@ -239,98 +260,55 @@ function HomeClient() {
               </div>
             </section>
           ) : (
-            // 首页视图
+            // 首页视图 - 展示所有分類
             <>
               <ContinueWatching />
-              <div className='mb-8 flex justify-center'>
-                <CapsuleSwitch
-                  options={[
-                    { label: '电影', value: 'movie' },
-                    { label: '电视剧', value: 'tv' },
-                  ]}
-                  active={mediaType}
-                  onChange={(value) => {
-                    setMediaType(value as 'movie' | 'tv');
-                    setCurrentTag('热门'); // Reset tag on media type change
-                  }}
-                />
-              </div>
-              {/* 標籤容器 - 完全照抄 LibreTV 的 renderDoubanTags 邏輯 */}
-              <div className="flex flex-wrap gap-2 mb-4 justify-center">
-                {/* 管理標籤按鈕 - 完全照抄 LibreTV 的設計 */}
-                <button
-                  onClick={() => setTagManagerOpen(true)}
-                  className="py-1.5 px-3.5 rounded text-sm font-medium transition-all duration-300 bg-gray-800 text-gray-300 hover:bg-pink-700 hover:text-white border border-gray-600 hover:border-white flex items-center"
-                >
-                  <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                  </svg>
-                  管理标签
-                </button>
-
-                {/* 標籤列表 - 完全照抄 LibreTV 的渲染邏輯 */}
-                {(mediaType === 'movie' ? movieTags : tvTags).map(tag => (
-                  <button
-                    key={tag}
-                    onClick={() => setCurrentTag(tag)}
-                    className={`py-1.5 px-3.5 rounded text-sm font-medium transition-all duration-300 border ${
-                      currentTag === tag
-                        ? 'bg-pink-600 text-white shadow-md border-white'
-                        : 'bg-gray-800 text-gray-300 hover:bg-pink-700 hover:text-white border-gray-600 hover:border-white'
-                    }`}
-                  >
-                    {tag}
-                  </button>
-                ))}
-              </div>
-
-              {/* 添加排序功能到首頁 */}
-              <div className="flex justify-center mb-8">
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
-                  <div className="flex items-center gap-4">
-                    <h3 className="text-sm font-semibold text-gray-900 dark:text-white">排序:</h3>
-                    <select
-                      value={sortOrder}
-                      onChange={(e) => setSortOrder(e.target.value)}
-                      className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              
+              {/* 渲染所有分類區塊 */}
+              {homeSections.map((section, index) => (
+                <section key={index} className='mb-8'>
+                  <div className='mb-4 flex items-center justify-between'>
+                    <h2 className='text-xl font-bold text-gray-800 dark:text-gray-200'>
+                      {section.title}
+                    </h2>
+                    <Link
+                      href={`/douban?type=${section.type}&tag=${encodeURIComponent(section.tag)}&title=${encodeURIComponent(section.title)}`}
+                      className='flex items-center text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
                     >
-                      <option value="recommend">推薦排序</option>
-                      <option value="time">時間排序</option>
-                      <option value="rank">評分排序</option>
-                    </select>
+                      查看更多
+                      <ChevronRight className='ml-1 h-4 w-4' />
+                    </Link>
                   </div>
-                </div>
-              </div>
-              <section className='mb-8'>
-                <div className='justify-start grid grid-cols-3 gap-x-2 gap-y-14 sm:gap-y-20 px-2 sm:grid-cols-[repeat(auto-fill,_minmax(11rem,_1fr))] sm:gap-x-8 sm:px-4'>
-                  {loading
-                    ? Array.from({ length: 16 }).map((_, index) => (
-                        <div
-                          key={index}
-                          className='w-full'
-                        >
-                          <div className='relative aspect-[2/3] w-full overflow-hidden rounded-lg bg-gray-200 animate-pulse dark:bg-gray-800'>
-                            <div className='absolute inset-0 bg-gray-300 dark:bg-gray-700'></div>
+                  
+                  <ScrollableRow>
+                    {section.loading
+                      ? Array.from({ length: 8 }).map((_, idx) => (
+                          <div key={idx} className='w-32 flex-shrink-0'>
+                            <div className='relative aspect-[2/3] w-full overflow-hidden rounded-lg bg-gray-200 animate-pulse dark:bg-gray-800'>
+                              <div className='absolute inset-0 bg-gray-300 dark:bg-gray-700'></div>
+                            </div>
+                            <div className='mt-2 h-4 bg-gray-200 rounded animate-pulse dark:bg-gray-800'></div>
                           </div>
-                          <div className='mt-2 h-4 bg-gray-200 rounded animate-pulse dark:bg-gray-800'></div>
-                        </div>
-                      ))
-                    : displayedContent.map((item, index) => (
-                        <div
-                          key={index}
-                          className='w-full'
-                        >
-                          <VideoCard
-                            from='douban'
-                            title={item.title}
-                            poster={item.poster}
-                            douban_id={item.id}
-                            rate={item.rate}
-                          />
-                        </div>
-                      ))}
-                </div>
-              </section>
+                        ))
+                      : section.data.map((item, idx) => (
+                          <div key={idx} className='w-32 flex-shrink-0'>
+                            <VideoCard
+                              from='douban'
+                              title={item.title}
+                              poster={item.poster}
+                              douban_id={item.id}
+                              rate={item.rate}
+                            />
+                          </div>
+                        ))}
+                    {!section.loading && section.data.length === 0 && (
+                      <div className='w-full text-center text-gray-500 py-8 dark:text-gray-400'>
+                        暂无{section.title}内容
+                      </div>
+                    )}
+                  </ScrollableRow>
+                </section>
+              ))}
             </>
           )}
         </div>

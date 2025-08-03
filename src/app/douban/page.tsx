@@ -247,37 +247,8 @@ function DoubanPageClient() {
           <p className='text-gray-600 dark:text-gray-400'>来自豆瓣的精选内容</p>
         </div>
 
-        {/* 標籤系統 - 使用與首頁相同的標籤管理 */}
-        {type && (
-          <div className="mb-6">
-            <div className="flex flex-wrap gap-2 justify-center">
-              <button
-                onClick={() => setTagManagerOpen(true)}
-                className="py-1.5 px-3.5 rounded text-sm font-medium transition-all duration-300 bg-gray-800 text-gray-300 hover:bg-pink-700 hover:text-white border border-gray-600 hover:border-white flex items-center"
-              >
-                <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                </svg>
-                管理标签
-              </button>
-
-              {/* 顯示當前標籤列表 */}
-              {(type === 'movie' ? movieTags : tvTags).map(tagItem => (
-                <button
-                  key={tagItem}
-                  onClick={() => handleTagChange(tagItem)}
-                  className={`py-1.5 px-3.5 rounded text-sm font-medium transition-all duration-300 border ${
-                    tag === tagItem
-                      ? 'bg-pink-600 text-white shadow-md border-white'
-                      : 'bg-gray-800 text-gray-300 hover:bg-pink-700 hover:text-white border-gray-600 hover:border-white'
-                  }`}
-                >
-                  {tagItem}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
+        {/* 標籤系統 - 根據分類使用不同的標籤管理 */}
+        {type && <DoubanTagSystem type={type as 'movie' | 'tv'} specificCategory={tag} />}
 
         {/* 排序器 */}
         {type && tag && (
