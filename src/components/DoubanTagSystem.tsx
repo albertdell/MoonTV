@@ -30,6 +30,14 @@ const getCategoryTags = (type: 'movie' | 'tv', category?: string) => {
       case '日本动画':
       case '日漫':
         return ['热门', '冒险', '动作', '喜剧', '剧情', '奇幻', '科幻', '恋爱', '校园', '运动', '音乐', '治愈'];
+      case '英剧':
+        return ['热门', '剧情', '喜剧', '犯罪', '历史', '科幻', '奇幻', '悬疑', '家庭', '传记'];
+      case '国产剧':
+        return ['热门', '古装', '现代', '都市', '农村', '军旅', '谍战', '家庭', '青春', '职场'];
+      case '港剧':
+        return ['热门', '警匪', '商战', '家庭', '武侠', '时装', '古装', '喜剧', '悬疑'];
+      case '纪录片':
+        return ['热门', '自然', '历史', '科学', '社会', '人物', '旅行', '美食', '艺术', '军事'];
       default:
         // 電視劇的通用標籤
         return ['热门', '美剧', '英剧', '韩剧', '日剧', '国产剧', '港剧', '日本动画', '综艺', '纪录片'];
@@ -87,7 +95,10 @@ const DoubanTagSystem: React.FC<DoubanTagSystemProps> = ({ type, specificCategor
     if (tag !== currentTag) {
       const params = new URLSearchParams(searchParams.toString());
       params.set('tag', tag);
-      params.set('type', type);
+      // 確保 type 參數正確設置
+      if (!params.has('type')) {
+        params.set('type', type);
+      }
       router.push(`/douban?${params.toString()}`);
     }
   };

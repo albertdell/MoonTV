@@ -90,23 +90,49 @@ function HomeClient() {
 
       const updatedSections = await Promise.all(
         sectionsToFetch.map(async (section) => {
-          try {
-            const response = await fetch(`/api/douban?type=${section.type}&tag=${section.tag}&sort=time&limit=8`);
-            if (response.ok) {
-              const data: DoubanResult = await response.json();
-              return {
-                ...section,
-                data: data.list?.slice(0, 8) || [], // 限制每個分類顯示8個項目
-                loading: false,
-              };
-            } else {
-              // console.error(`Failed to fetch ${section.title} data:`, response.status);
-              return { ...section, data: [], loading: false };
+          // 添加重試機制
+          let retryCount = 0;
+          const maxRetries = 2;
+          
+          while (retryCount <= maxRetries) {
+            try {
+              const response = await fetch(`/api/douban?type=${section.type}&tag=${encodeURIComponent(section.tag)}&sort=time&pageSize=8`);
+              if (response.ok) {
+                const data: DoubanResult = await response.json();
+                if (data.code === 200 && data.list && data.list.length > 0) {
+                  return {
+                    ...section,
+                    data: data.list.slice(0, 8), // 限制每個分類顯示8個項目
+                    loading: false,
+                  };
+                }
+              }
+              
+              // 如果響應不成功或沒有數據，進行重試
+              if (retryCount < maxRetries) {
+                console.warn(`${section.title} 第 ${retryCount + 1} 次嘗試失敗，準備重試...`);
+                retryCount++;
+                await new Promise(resolve => setTimeout(resolve, 1000 * retryCount)); // 遞增延遲
+                continue;
+              }
+              
+              console.error(`獲取 ${section.title} 數據失敗:`, response.status);
+              return { ...section, loading: false, data: [] };
+              
+            } catch (error) {
+              if (retryCount < maxRetries) {
+                console.warn(`${section.title} 第 ${retryCount + 1} 次嘗試錯誤:`, error, '準備重試...');
+                retryCount++;
+                await new Promise(resolve => setTimeout(resolve, 1000 * retryCount)); // 遞增延遲
+                continue;
+              }
+              
+              console.error(`獲取 ${section.title} 數據錯誤:`, error);
+              return { ...section, loading: false, data: [] };
             }
-          } catch (error) {
-            // console.error(`Error fetching ${section.title} data:`, error);
-            return { ...section, data: [], loading: false };
           }
+          
+          return { ...section, loading: false, data: [] };
         })
       );
       setHomeSections(updatedSections);

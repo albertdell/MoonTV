@@ -94,20 +94,60 @@ export async function GET(request: Request) {
     return handleTop250(pageStart);
   }
 
-  // 參考 LibreTV 的實現 - 簡化篩選邏輯
-  // 豆瓣 API 最好的方式是使用單一標籤，而不是組合多個篩選條件
+  // 參考 LibreTV 的實現 - 建立正確的標籤映射
   let finalTag = tag;
   
-  // 優先級：類型 > 地區 > 年份 > 原始標籤
+  // 特殊標籤映射 - 解決美劇、日劇、日漫等分類問題
+  const tagMapping: { [key: string]: string } = {
+    // 電視劇分類映射
+    '美剧': '美剧',
+    '韩剧': '韩剧', 
+    '日剧': '日剧',
+    '国产剧': '国产剧',
+    '港剧': '港剧',
+    '英剧': '英剧',
+    '日本动画': '日本动画',
+    '日漫': '日本动画', // 日漫映射到日本动画
+    '综艺': '综艺',
+    '纪录片': '纪录片',
+    
+    // 電影分類映射
+    '热门': '热门',
+    '最新': '最新',
+    '经典': '经典',
+    '豆瓣高分': '豆瓣高分',
+    '冷门佳片': '冷门佳片',
+    '华语': '华语',
+    '欧美': '欧美',
+    '韩国': '韩国',
+    '日本': '日本',
+    
+    // 類型標籤
+    '动作': '动作',
+    '喜剧': '喜剧',
+    '爱情': '爱情',
+    '科幻': '科幻',
+    '悬疑': '悬疑',
+    '恐怖': '恐怖',
+    '治愈': '治愈',
+    '剧情': '剧情',
+    '奇幻': '奇幻',
+    '动画': '动画'
+  };
+  
+  // 使用映射表獲取正確的標籤
+  finalTag = tagMapping[tag] || tag;
+  
+  // 優先級：類型 > 地區 > 年份 > 映射標籤
   if (genres && genres !== '') {
     const genreList = genres.split(',').filter(g => g.trim() !== '');
     if (genreList.length > 0) {
-      finalTag = genreList[0]; // 使用第一個類型
+      finalTag = tagMapping[genreList[0]] || genreList[0];
     }
   } else if (region && region !== '') {
-    finalTag = region; // 使用地區
+    finalTag = tagMapping[region] || region;
   } else if (year && year !== '') {
-    finalTag = year; // 使用年份
+    finalTag = year; // 年份不需要映射
   }
 
   const target = `https://movie.douban.com/j/search_subjects?type=${type}&tag=${encodeURIComponent(finalTag)}&sort=${sort}&page_limit=${pageSize}&page_start=${pageStart}`;
