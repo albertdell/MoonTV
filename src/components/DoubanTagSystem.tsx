@@ -54,39 +54,58 @@ const DoubanTagSystem: React.FC<DoubanTagSystemProps> = ({ type, specificCategor
   const [showManageModal, setShowManageModal] = useState(false);
   const [newTag, setNewTag] = useState('');
 
-  // 根據類型和分類獲取對應的標籤
+  // 根據類型和分類獲取對應的標籤 - 參考 LibreTV 的實現
   useEffect(() => {
     const categoryTags = getCategoryTags(type, specificCategory);
     
-    // 嘗試從localStorage加載用戶自定義標籤
-    const storageKey = specificCategory 
-      ? `user${type}Tags_${specificCategory}` 
-      : `user${type}Tags`;
-    
     try {
+      // 為每個特定分類使用獨立的 localStorage key
+      let storageKey = '';
+      if (specificCategory) {
+        // 特定分類使用分類名稱作為 key，例如：userTags_日漫、userTags_日剧
+        storageKey = `userTags_${specificCategory}`;
+      } else {
+        // 通用分類使用 type 作為 key
+        storageKey = `user${type}Tags`;
+      }
+      
       const savedTags = localStorage.getItem(storageKey);
       if (savedTags) {
-        setTags(JSON.parse(savedTags));
+        const parsedTags = JSON.parse(savedTags);
+        // 確保至少包含默認標籤
+        if (parsedTags.length > 0) {
+          setTags(parsedTags);
+        } else {
+          setTags(categoryTags);
+        }
       } else {
         setTags(categoryTags);
       }
+      console.log(`載入標籤從 ${storageKey}:`, savedTags ? JSON.parse(savedTags) : categoryTags);
     } catch (error) {
-      // console.error('載入標籤失敗:', error);
+      console.error('載入標籤失敗:', error);
       setTags(categoryTags);
     }
   }, [type, specificCategory]);
 
-  // 保存標籤到localStorage
+  // 保存標籤到localStorage - 參考 LibreTV 的實現
   const saveTags = (newTags: string[]) => {
-    const storageKey = specificCategory 
-      ? `user${type}Tags_${specificCategory}` 
-      : `user${type}Tags`;
+    // 為每個特定分類使用獨立的 localStorage key
+    let storageKey = '';
+    if (specificCategory) {
+      // 特定分類使用分類名稱作為 key，例如：userTags_日漫、userTags_日剧
+      storageKey = `userTags_${specificCategory}`;
+    } else {
+      // 通用分類使用 type 作為 key
+      storageKey = `user${type}Tags`;
+    }
     
     try {
       localStorage.setItem(storageKey, JSON.stringify(newTags));
       setTags(newTags);
+      console.log(`保存標籤到 ${storageKey}:`, newTags);
     } catch (error) {
-      // console.error('保存標籤失敗:', error);
+      console.error('保存標籤失敗:', error);
     }
   };
 

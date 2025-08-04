@@ -96,13 +96,13 @@ function HomeClient() {
           
           while (retryCount <= maxRetries) {
             try {
-              const response = await fetch(`/api/douban?type=${section.type}&tag=${encodeURIComponent(section.tag)}&sort=time&pageSize=8`);
+              const response = await fetch(`/api/douban?type=${section.type}&tag=${encodeURIComponent(section.tag)}&sort=time&pageSize=16`);
               if (response.ok) {
                 const data: DoubanResult = await response.json();
                 if (data.code === 200 && data.list && data.list.length > 0) {
                   return {
                     ...section,
-                    data: data.list.slice(0, 8), // 限制每個分類顯示8個項目
+                    data: data.list.slice(0, 16), // 增加到16個項目以支持滑動功能
                     loading: false,
                   };
                 }
@@ -260,7 +260,7 @@ function HomeClient() {
                   
                   <ScrollableRow>
                     {section.loading
-                      ? Array.from({ length: 8 }).map((_, idx) => (
+                      ? Array.from({ length: 16 }).map((_, idx) => (
                           <div key={idx} className='w-32 flex-shrink-0'>
                             <div className='relative aspect-[2/3] w-full overflow-hidden rounded-lg bg-gray-200 animate-pulse dark:bg-gray-800'>
                               <div className='absolute inset-0 bg-gray-300 dark:bg-gray-700'></div>
