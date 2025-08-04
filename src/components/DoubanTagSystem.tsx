@@ -54,13 +54,22 @@ const DoubanTagSystem: React.FC<DoubanTagSystemProps> = ({ type, specificCategor
   const [showManageModal, setShowManageModal] = useState(false);
   const [newTag, setNewTag] = useState('');
   
-  // 獲取當前分類的唯一標識符
+  // 獲取當前分類的唯一標識符 - 修復電視劇分類共享問題
   const getCategoryKey = () => {
     if (specificCategory) {
       return specificCategory; // 日漫、美劇、日劇等
     }
     return type; // movie 或 tv
   };
+  
+  // 調試：顯示當前分類信息
+  console.log(`🔍 DoubanTagSystem 當前分類: type=${type}, specificCategory=${specificCategory}, categoryKey=${getCategoryKey()}`);
+  
+  // 🚨 緊急檢查：如果是電視劇但沒有 specificCategory，這是錯誤的！
+  if (type === 'tv' && !specificCategory) {
+    console.error('❌ 錯誤：電視劇分類缺少 specificCategory 參數！這會導致標籤混合！');
+    console.error('當前 URL 參數:', window.location.search);
+  }
 
   // 獨立分類標籤系統 - 每個分類完全獨立
   useEffect(() => {
@@ -195,13 +204,14 @@ const DoubanTagSystem: React.FC<DoubanTagSystemProps> = ({ type, specificCategor
         {/* 標籤列表 - 完全按照 LibreTV 的渲染邏輯 */}
         {tags.map((tag) => (
           <button
-            key={tag}
+            key={`${getCategoryKey()}-${tag}`}
             onClick={() => handleTagClick(tag)}
             className={`py-1.5 px-3.5 rounded text-sm font-medium transition-all duration-300 border ${
               tag === currentTag
                 ? 'bg-pink-600 text-white shadow-md border-white'
                 : 'bg-gray-800 text-gray-300 hover:bg-pink-700 hover:text-white border-gray-600 hover:border-white'
             }`}
+            title={`分類: ${getCategoryKey()} | 標籤: ${tag}`}
           >
             {tag}
           </button>
