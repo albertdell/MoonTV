@@ -53,59 +53,55 @@ const DoubanTagSystem: React.FC<DoubanTagSystemProps> = ({ type, specificCategor
   const [tags, setTags] = useState<string[]>([]);
   const [showManageModal, setShowManageModal] = useState(false);
   const [newTag, setNewTag] = useState('');
+  
+  // 獲取當前分類的唯一標識符
+  const getCategoryKey = () => {
+    if (specificCategory) {
+      return specificCategory; // 日漫、美劇、日劇等
+    }
+    return type; // movie 或 tv
+  };
 
-  // 根據類型和分類獲取對應的標籤 - 參考 LibreTV 的實現
+  // 獨立分類標籤系統 - 每個分類完全獨立
   useEffect(() => {
+    const categoryKey = getCategoryKey();
     const categoryTags = getCategoryTags(type, specificCategory);
     
     try {
-      // 為每個特定分類使用獨立的 localStorage key
-      let storageKey = '';
-      if (specificCategory) {
-        // 特定分類使用分類名稱作為 key，例如：userTags_日漫、userTags_日剧
-        storageKey = `userTags_${specificCategory}`;
-      } else {
-        // 通用分類使用 type 作為 key
-        storageKey = `user${type}Tags`;
-      }
+      // 每個分類使用完全獨立的 localStorage key
+      const storageKey = `moonTV_tags_${categoryKey}`;
       
       const savedTags = localStorage.getItem(storageKey);
       if (savedTags) {
         const parsedTags = JSON.parse(savedTags);
-        // 確保至少包含默認標籤
-        if (parsedTags.length > 0) {
+        if (Array.isArray(parsedTags) && parsedTags.length > 0) {
           setTags(parsedTags);
+          console.log(`✅ 載入 ${categoryKey} 的獨立標籤:`, parsedTags);
         } else {
           setTags(categoryTags);
+          console.log(`🔄 使用 ${categoryKey} 的默認標籤:`, categoryTags);
         }
       } else {
         setTags(categoryTags);
+        console.log(`🆕 初始化 ${categoryKey} 的標籤:`, categoryTags);
       }
-      console.log(`載入標籤從 ${storageKey}:`, savedTags ? JSON.parse(savedTags) : categoryTags);
     } catch (error) {
-      console.error('載入標籤失敗:', error);
+      console.error(`❌ 載入 ${categoryKey} 標籤失敗:`, error);
       setTags(categoryTags);
     }
   }, [type, specificCategory]);
 
-  // 保存標籤到localStorage - 參考 LibreTV 的實現
+  // 獨立分類標籤保存系統
   const saveTags = (newTags: string[]) => {
-    // 為每個特定分類使用獨立的 localStorage key
-    let storageKey = '';
-    if (specificCategory) {
-      // 特定分類使用分類名稱作為 key，例如：userTags_日漫、userTags_日剧
-      storageKey = `userTags_${specificCategory}`;
-    } else {
-      // 通用分類使用 type 作為 key
-      storageKey = `user${type}Tags`;
-    }
+    const categoryKey = getCategoryKey();
+    const storageKey = `moonTV_tags_${categoryKey}`;
     
     try {
       localStorage.setItem(storageKey, JSON.stringify(newTags));
       setTags(newTags);
-      console.log(`保存標籤到 ${storageKey}:`, newTags);
+      console.log(`✅ 保存 ${categoryKey} 的獨立標籤:`, newTags);
     } catch (error) {
-      console.error('保存標籤失敗:', error);
+      console.error(`❌ 保存 ${categoryKey} 標籤失敗:`, error);
     }
   };
 
@@ -224,7 +220,7 @@ const DoubanTagSystem: React.FC<DoubanTagSystemProps> = ({ type, specificCategor
             </button>
 
             <h3 className="text-xl font-bold text-white mb-4">
-              標籤管理 ({type === 'movie' ? '電影' : '電視劇'})
+              標籤管理 - {specificCategory || (type === 'movie' ? '電影' : '電視劇')}
             </h3>
 
             <div className="mb-4">
