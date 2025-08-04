@@ -90,15 +90,20 @@ const DoubanTagSystem: React.FC<DoubanTagSystemProps> = ({ type, specificCategor
     }
   };
 
-  // 處理標籤點擊 - 完全按照 LibreTV 的邏輯
+  // 處理標籤點擊 - 保持分類上下文
   const handleTagClick = (tag: string) => {
     if (tag !== currentTag) {
       const params = new URLSearchParams(searchParams.toString());
       params.set('tag', tag);
+      
       // 確保 type 參數正確設置
-      if (!params.has('type')) {
-        params.set('type', type);
+      params.set('type', type);
+      
+      // 如果有特定分類，保持 title 參數
+      if (specificCategory) {
+        params.set('title', specificCategory);
       }
+      
       router.push(`/douban?${params.toString()}`);
     }
   };

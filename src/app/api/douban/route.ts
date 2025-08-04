@@ -49,9 +49,10 @@ export const runtime = 'edge';
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
 
-  // 获取参数
+  // 獲取參數
   const type = searchParams.get('type');
   const tag = searchParams.get('tag');
+  const title = searchParams.get('title'); // 獲取分類標題
   const pageSize = parseInt(searchParams.get('pageSize') || '16');
   const pageStart = parseInt(searchParams.get('pageStart') || '0');
   
@@ -138,6 +139,33 @@ export async function GET(request: Request) {
   // 使用映射表獲取正確的標籤
   finalTag = tagMapping[tag] || tag;
   
+  // 特殊處理：如果有 title 參數，說明是在特定分類下
+  // 需要組合分類和標籤來獲取正確的結果
+  if (title && type === 'tv') {
+    // 對於電視劇的特定分類，組合查詢
+    const categoryMapping: { [key: string]: string } = {
+      '日漫': '日本动画',
+      '美剧': '美剧',
+      '韩剧': '韩剧',
+      '日剧': '日剧',
+      '综艺': '综艺',
+      '英剧': '英剧',
+      '国产剧': '国产剧',
+      '港剧': '港剧',
+      '纪录片': '纪录片'
+    };
+    
+    const categoryTag = categoryMapping[title] || title;
+    
+    // 如果標籤不是 "热门"，嘗試組合查詢
+    if (tag !== '热门' && tag !== categoryTag) {
+      // 對於用戶創建的標籤，組合分類和標籤
+      finalTag = `${categoryTag} ${tag}`;
+    } else {
+      finalTag = categoryTag;
+    }
+  }
+  
   // 優先級：類型 > 地區 > 年份 > 映射標籤
   if (genres && genres !== '') {
     const genreList = genres.split(',').filter(g => g.trim() !== '');
@@ -205,6 +233,7 @@ export async function GET(request: Request) {
         filters: {
           originalTag: tag,
           finalTag: finalTag,
+          title: title,
           year: year,
           region: region,
           genres: genres

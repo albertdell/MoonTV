@@ -36,6 +36,7 @@ function DoubanPageClient() {
 
   const type = searchParams.get('type');
   const tag = searchParams.get('tag');
+  const title = searchParams.get('title'); // 獲取分類標題
 
   // 生成骨架屏数据
   const skeletonData = Array.from({ length: 25 }, (_, index) => index);
@@ -75,10 +76,26 @@ function DoubanPageClient() {
 
   // 處理標籤切換
   const handleTagChange = (newTag: string) => {
-    // 更新 URL 參數
+    // 更新 URL 參數，保持當前的分類上下文
     const params = new URLSearchParams(searchParams);
     params.set('tag', newTag);
-    window.history.pushState({}, '', `${window.location.pathname}?${params}`);
+    
+    // 確保保持正確的 type 參數
+    if (type) {
+      params.set('type', type);
+    }
+    
+    // 如果是特定分類（如日漫、美劇等），保持 title 參數
+    const currentTitle = searchParams.get('title');
+    if (currentTitle) {
+      params.set('title', currentTitle);
+    }
+    
+    const newUrl = `${window.location.pathname}?${params}`;
+    window.history.pushState({}, '', newUrl);
+    
+    // 強制重新加載頁面以確保數據更新
+    window.location.reload();
   };
 
   // 處理篩選器變更
@@ -96,8 +113,13 @@ function DoubanPageClient() {
       sort: filters.sort,
     });
 
+    // 如果有分類標題，添加到查詢參數
+    if (title) {
+      params.set('title', title);
+    }
+
     return params.toString();
-  }, [type, tag, filters]);
+  }, [type, tag, title, filters]);
 
   useEffect(() => {
     if (!type || !tag) {
@@ -248,7 +270,7 @@ function DoubanPageClient() {
         </div>
 
         {/* 標籤系統 - 根據分類使用不同的標籤管理 */}
-        {type && <DoubanTagSystem type={type as 'movie' | 'tv'} specificCategory={tag || undefined} />}
+        {type && <DoubanTagSystem type={type as 'movie' | 'tv'} specificCategory={title || undefined} />}
 
         {/* 排序器 */}
         {type && tag && (
