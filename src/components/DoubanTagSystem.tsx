@@ -80,13 +80,15 @@ const DoubanTagSystem: React.FC<DoubanTagSystemProps> = ({ type, specificCategor
     return type; // movie 或 tv
   };
   
-  // 調試：顯示當前分類信息
-  console.log(`🔍 DoubanTagSystem 當前分類: type=${type}, specificCategory=${specificCategory}, categoryKey=${getCategoryKey()}`);
-  
-  // 🚨 緊急檢查：如果是電視劇但沒有 specificCategory，這是錯誤的！
-  if (type === 'tv' && !specificCategory) {
-    console.error('❌ 錯誤：電視劇分類缺少 specificCategory 參數！這會導致標籤混合！');
-    console.error('當前 URL 參數:', window.location.search);
+  // 開發環境下的調試信息
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`🔍 DoubanTagSystem 當前分類: type=${type}, specificCategory=${specificCategory}, categoryKey=${getCategoryKey()}`);
+    
+    // 檢查電視劇分類是否缺少 specificCategory 參數
+    if (type === 'tv' && !specificCategory) {
+      console.error('❌ 錯誤：電視劇分類缺少 specificCategory 參數！這會導致標籤混合！');
+      console.error('當前 URL 參數:', window.location.search);
+    }
   }
 
   // 獨立分類標籤系統 - 每個分類完全獨立

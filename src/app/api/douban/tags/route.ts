@@ -29,7 +29,7 @@ async function fetchDoubanTags(type: 'movie' | 'tv' | 'us_drama' | 'kr_drama' | 
     const url = `https://movie.douban.com/j/search_tags?type=${doubanType}`;
     const proxyUrl = `/api/proxy?url=${encodeURIComponent(url)}`;
     
-    const response = await fetch(proxyUrl);
+    const response = await fetch(proxyUrl, fetchOptions);
     clearTimeout(timeoutId);
 
     if (!response.ok) {
@@ -40,6 +40,7 @@ async function fetchDoubanTags(type: 'movie' | 'tv' | 'us_drama' | 'kr_drama' | 
     return data.tags || [];
   } catch (error) {
     clearTimeout(timeoutId);
+    // 開發環境下記錄錯誤（生產環境靜默處理）
     if (process.env.NODE_ENV === 'development') {
       console.error('獲取豆瓣標籤失敗:', error);
     }
@@ -93,6 +94,7 @@ export async function GET(request: Request) {
       },
     });
   } catch (error) {
+    // 開發環境下記錄錯誤（生產環境靜默處理）
     if (process.env.NODE_ENV === 'development') {
       console.error('豆瓣標籤 API 錯誤:', error);
     }
