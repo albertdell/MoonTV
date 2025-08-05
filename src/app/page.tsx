@@ -38,11 +38,11 @@ function HomeClient() {
     { title: '熱門電影', type: 'movie', tag: '热门', data: [], loading: true },
     { title: '熱門劇集', type: 'tv', tag: '热门', data: [], loading: true },
     { title: '豆瓣 Top250', type: 'movie', tag: 'top250', data: [], loading: true },
-    { title: '综艺', type: 'tv', tag: '综艺', data: [], loading: true },
-    { title: '美剧', type: 'tv', tag: '美剧', data: [], loading: true },
-    { title: '韩剧', type: 'tv', tag: '韩剧', data: [], loading: true },
-    { title: '日剧', type: 'tv', tag: '日剧', data: [], loading: true },
-    { title: '日漫', type: 'tv', tag: '日本动画', data: [], loading: true },
+    { title: '综艺', type: 'variety', tag: '热门', data: [], loading: true },
+    { title: '美剧', type: 'us_drama', tag: '热门', data: [], loading: true },
+    { title: '韩剧', type: 'kr_drama', tag: '热门', data: [], loading: true },
+    { title: '日剧', type: 'jp_drama', tag: '热门', data: [], loading: true },
+    { title: '日漫', type: 'jp_anime', tag: '热门', data: [], loading: true },
   ]);
 
 
@@ -81,11 +81,11 @@ function HomeClient() {
         { title: '熱門電影', type: 'movie' as const, tag: '热门', data: [], loading: true },
         { title: '熱門劇集', type: 'tv' as const, tag: '热门', data: [], loading: true },
         { title: '豆瓣 Top250', type: 'movie' as const, tag: 'top250', data: [], loading: true },
-        { title: '综艺', type: 'tv' as const, tag: '综艺', data: [], loading: true },
-        { title: '美剧', type: 'tv' as const, tag: '美剧', data: [], loading: true },
-        { title: '韩剧', type: 'tv' as const, tag: '韩剧', data: [], loading: true },
-        { title: '日剧', type: 'tv' as const, tag: '日剧', data: [], loading: true },
-        { title: '日漫', type: 'tv' as const, tag: '日本动画', data: [], loading: true },
+        { title: '综艺', type: 'variety' as const, tag: '热门', data: [], loading: true },
+        { title: '美剧', type: 'us_drama' as const, tag: '热门', data: [], loading: true },
+        { title: '韩剧', type: 'kr_drama' as const, tag: '热门', data: [], loading: true },
+        { title: '日剧', type: 'jp_drama' as const, tag: '热门', data: [], loading: true },
+        { title: '日漫', type: 'jp_anime' as const, tag: '热门', data: [], loading: true },
       ];
 
       const updatedSections = await Promise.all(

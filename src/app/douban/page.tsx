@@ -10,7 +10,6 @@ import DoubanCardSkeleton from '@/components/DoubanCardSkeleton';
 import DoubanFilters from '@/components/DoubanFilters';
 import DoubanTagSystem from '@/components/DoubanTagSystem';
 import PageLayout from '@/components/PageLayout';
-import TagManager from '@/components/TagManager';
 import VideoCard from '@/components/VideoCard';
 
 interface FilterOptions {
@@ -29,8 +28,7 @@ function DoubanPageClient() {
     sort: 'recommend',
   });
   const [isTagManagerOpen, setTagManagerOpen] = useState(false);
-  const [movieTags, setMovieTags] = useState(['热门', '最新', '经典', '豆瓣高分', '冷门佳片', '华语', '欧美', '韩国', '日本', '动作', '喜剧', '爱情', '科幻', '悬疑', '恐怖', '治愈']);
-  const [tvTags, setTvTags] = useState(['热门', '美剧', '英剧', '韩剧', '日剧', '国产剧', '港剧', '日本动画', '综艺', '纪录片']);
+  // 移除舊的標籤狀態 - 現在由 DoubanTagSystem 獨立管理
   const observerRef = useRef<IntersectionObserver | null>(null);
   const loadingRef = useRef<HTMLDivElement>(null);
 
@@ -41,38 +39,9 @@ function DoubanPageClient() {
   // 生成骨架屏数据
   const skeletonData = Array.from({ length: 25 }, (_, index) => index);
 
-  // 加載用戶標籤
-  useEffect(() => {
-    const loadUserTags = () => {
-      try {
-        const savedMovieTags = localStorage.getItem('userMovieTags');
-        const savedTvTags = localStorage.getItem('userTvTags');
-        
-        if (savedMovieTags) {
-          setMovieTags(JSON.parse(savedMovieTags));
-        }
-        
-        if (savedTvTags) {
-          setTvTags(JSON.parse(savedTvTags));
-        }
-      } catch (e) {
-        console.error('加載標籤失敗：', e);
-      }
-    };
+  // 移除舊的標籤管理邏輯 - 現在由 DoubanTagSystem 獨立處理
 
-    loadUserTags();
-  }, []);
-
-  // 處理標籤變更
-  const handleTagsChange = (newTags: string[]) => {
-    if (type === 'movie') {
-      setMovieTags(newTags);
-      localStorage.setItem('userMovieTags', JSON.stringify(newTags));
-    } else {
-      setTvTags(newTags);
-      localStorage.setItem('userTvTags', JSON.stringify(newTags));
-    }
-  };
+  // 移除舊的標籤變更處理 - 現在由 DoubanTagSystem 獨立處理
 
   // 處理標籤切換
   const handleTagChange = (newTag: string) => {
@@ -240,7 +209,21 @@ function DoubanPageClient() {
     // 如果 title 参数不存在，根据 type 和 tag 拼接
     if (!type || !tag) return '豆瓣内容';
 
-    const typeText = type === 'movie' ? '电影' : '电视剧';
+    // 分類顯示名稱映射
+    const getTypeText = (type: string) => {
+      switch (type) {
+        case 'movie': return '电影';
+        case 'tv': return '电视剧';
+        case 'us_drama': return '美剧';
+        case 'kr_drama': return '韩剧';
+        case 'jp_drama': return '日剧';
+        case 'jp_anime': return '日漫';
+        case 'variety': return '综艺';
+        default: return '未知分类';
+      }
+    };
+    
+    const typeText = getTypeText(type);
     const tagText = tag === 'top250' ? 'Top250' : tag;
 
     return `${typeText} - ${tagText}`;
@@ -270,7 +253,13 @@ function DoubanPageClient() {
         </div>
 
         {/* 標籤系統 - 根據分類使用不同的標籤管理 */}
-        {type && <DoubanTagSystem type={type as 'movie' | 'tv'} specificCategory={title || undefined} />}
+        {type && <DoubanTagSystem type={type as 'movie' | 'tv' | 'us_drama' | 'kr_drama' | 'jp_drama' | 'jp_anime' | 'variety'} specificCategory={title || undefined} />}
+        
+        {/* 調試信息 */}
+        <div className="mb-4 p-4 bg-gray-100 dark:bg-gray-800 rounded">
+          <p className="text-sm">調試信息: type={type}, tag={tag}, title={title}</p>
+          <p className="text-sm">當前分類: {title || getTypeText(type)}</p>
+        </div>
 
         {/* 排序器 */}
         {type && tag && (
@@ -350,17 +339,7 @@ function DoubanPageClient() {
           )}
         </div>
 
-        {/* TagManager 組件 */}
-        <TagManager
-          isOpen={isTagManagerOpen}
-          onClose={() => setTagManagerOpen(false)}
-          tags={type === 'movie' ? movieTags : tvTags}
-          onTagsChange={handleTagsChange}
-          defaultTags={type === 'movie' ? ['热门', '最新', '经典', '豆瓣高分', '冷门佳片', '华语', '欧美', '韩国', '日本', '动作', '喜剧', '爱情', '科幻', '悬疑', '恐怖', '治愈'] : ['热门', '美剧', '英剧', '韩剧', '日剧', '国产剧', '港剧', '日本动画', '综艺', '纪录片']}
-          mediaType={type as 'movie' | 'tv'}
-          currentTag={tag || '热门'}
-          onTagChange={handleTagChange}
-        />
+        {/* 移除舊的 TagManager - 現在由 DoubanTagSystem 獨立處理 */}
       </div>
     </PageLayout>
   );
