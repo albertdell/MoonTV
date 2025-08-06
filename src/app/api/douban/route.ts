@@ -191,7 +191,7 @@ export async function GET(request: Request) {
     ];
     
     let doubanData = null;
-    let lastError = null;
+    let lastError: Error | null = null;
     
     for (let i = 0; i < corsProxies.length; i++) {
       try {
@@ -225,13 +225,13 @@ export async function GET(request: Request) {
         
       } catch (error) {
         console.error(`代理 ${i + 1} 失敗:`, error);
-        lastError = error;
+        lastError = error instanceof Error ? error : new Error(String(error));
         continue;
       }
     }
     
     if (!doubanData) {
-      throw new Error(`所有代理都失敗，最後錯誤: ${lastError?.message}`);
+      throw new Error(`所有代理都失敗，最後錯誤: ${lastError?.message || '未知錯誤'}`);
     }
     
     console.log('豆瓣 API 原始數據:', doubanData);
