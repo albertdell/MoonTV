@@ -112,28 +112,9 @@ const DoubanTagSystem: React.FC<DoubanTagSystemProps> = ({ type, specificCategor
   // 處理標籤點擊 - 統一使用搜尋功能
   const handleTagClick = (tag: string) => {
     if (tag !== currentTag) {
-      // 構建搜尋關鍵字，結合分類和標籤
-      let searchQuery = tag;
-      
-      // 如果有特定分類，在搜尋關鍵字前加上分類名稱以提高搜尋精確度
-      if (specificCategory) {
-        // 分類名稱映射，讓搜尋更精確
-        const categorySearchMap: { [key: string]: string } = {
-          '日本动画': '日本 动画',
-          '日漫': '日本 动画',
-          '美剧': '美国 电视剧',
-          '韩剧': '韩国 电视剧',
-          '日剧': '日本 电视剧',
-          '英剧': '英国 电视剧',
-          '国产剧': '中国 电视剧',
-          '港剧': '香港 电视剧',
-          '综艺': '综艺',
-          '纪录片': '纪录片'
-        };
-        
-        const categoryKeyword = categorySearchMap[specificCategory] || specificCategory;
-        searchQuery = `${categoryKeyword} ${tag}`;
-      }
+      // 直接使用標籤名稱作為搜尋關鍵字，不加分類前綴
+      // 因為第三方搜尋API用純關鍵字搜尋效果更好
+      const searchQuery = tag;
       
       // 跳轉到搜尋頁面
       router.push(`/search?q=${encodeURIComponent(searchQuery)}`);
