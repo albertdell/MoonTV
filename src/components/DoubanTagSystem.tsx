@@ -131,8 +131,20 @@ const DoubanTagSystem: React.FC<DoubanTagSystemProps> = ({ type, specificCategor
         router.push(`/douban?${params.toString()}`);
       }
     } else {
-      // 如果是用戶新增的標籤，跳轉到搜尋頁面
-      router.push(`/search?q=${encodeURIComponent(tag)}`);
+      // 如果是用戶新增的標籤，使用豆瓣API搜尋而不是第三方搜尋API
+      // 構建豆瓣搜尋URL，保持在當前分類中但使用標籤作為搜尋關鍵字
+      const params = new URLSearchParams(searchParams.toString());
+      params.set('tag', tag); // 使用用戶標籤作為搜尋標籤
+      
+      // 確保 type 參數正確設置
+      params.set('type', type);
+      
+      // 如果有特定分類，保持 title 參數
+      if (specificCategory) {
+        params.set('title', specificCategory);
+      }
+      
+      router.push(`/douban?${params.toString()}`);
     }
   };
 
