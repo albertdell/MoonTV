@@ -62,14 +62,6 @@ const DoubanTagSystem: React.FC<DoubanTagSystemProps> = ({ type, specificCategor
     return type; // movie 或 tv
   };
   
-  // 調試：顯示當前分類信息
-  console.log(`🔍 DoubanTagSystem 當前分類: type=${type}, specificCategory=${specificCategory}, categoryKey=${getCategoryKey()}`);
-  
-  // 🚨 緊急檢查：如果是電視劇但沒有 specificCategory，這是錯誤的！
-  if (type === 'tv' && !specificCategory) {
-    console.error('❌ 錯誤：電視劇分類缺少 specificCategory 參數！這會導致標籤混合！');
-    console.error('當前 URL 參數:', window.location.search);
-  }
 
   // 獨立分類標籤系統 - 每個分類完全獨立
   useEffect(() => {
@@ -114,25 +106,34 @@ const DoubanTagSystem: React.FC<DoubanTagSystemProps> = ({ type, specificCategor
     }
   };
 
-  // 處理標籤點擊 - 保持分類上下文
+  // 處理標籤點擊 - 區分默認標籤和用戶標籤
   const handleTagClick = (tag: string) => {
-    if (tag !== currentTag) {
-      const params = new URLSearchParams(searchParams.toString());
-      params.set('tag', tag);
-      
-      // 確保 type 參數正確設置
-      params.set('type', type);
-      
-      // 如果有特定分類，保持 title 參數
-      if (specificCategory) {
-        params.set('title', specificCategory);
+    // 獲取默認標籤列表
+    const defaultTags = getCategoryTags(type, specificCategory);
+    
+    // 如果是默認標籤，在分類中篩選
+    if (defaultTags.includes(tag)) {
+      if (tag !== currentTag) {
+        const params = new URLSearchParams(searchParams.toString());
+        params.set('tag', tag);
+        
+        // 確保 type 參數正確設置
+        params.set('type', type);
+        
+        // 如果有特定分類，保持 title 參數
+        if (specificCategory) {
+          params.set('title', specificCategory);
+        }
+        
+        router.push(`/douban?${params.toString()}`);
       }
-      
-      router.push(`/douban?${params.toString()}`);
+    } else {
+      // 如果是用戶新增的標籤，跳轉到搜尋頁面
+      router.push(`/search?q=${encodeURIComponent(tag)}`);
     }
   };
 
-  // 添加標籤 - 修改為跳轉到搜尋頁面
+  // 添加標籤 - 恢復原本的標籤功能
   const addTag = (tag: string) => {
     // 安全處理標籤名，防止XSS
     const safeTag = tag
@@ -143,12 +144,20 @@ const DoubanTagSystem: React.FC<DoubanTagSystemProps> = ({ type, specificCategor
 
     if (!safeTag) return;
 
-    // 直接跳轉到搜尋頁面，不再檢查是否已存在
+    // 檢查是否已存在（忽略大小寫）
+    const exists = tags.some(
+      existingTag => existingTag.toLowerCase() === safeTag.toLowerCase()
+    );
+
+    if (exists) {
+      alert('標籤已存在');
+      return;
+    }
+
+    // 添加到標籤數組並保存
+    const newTags = [...tags, safeTag];
+    saveTags(newTags);
     setNewTag('');
-    setShowManageModal(false);
-    
-    // 跳轉到搜尋頁面
-    router.push(`/search?q=${encodeURIComponent(safeTag)}`);
   };
 
   // 刪除標籤 - 完全按照 LibreTV 的邏輯
@@ -183,15 +192,15 @@ const DoubanTagSystem: React.FC<DoubanTagSystemProps> = ({ type, specificCategor
     <div className="mb-6">
       {/* 標籤容器 - 完全按照 LibreTV 的樣式 */}
       <div className="flex flex-wrap gap-2">
-        {/* 搜尋按鈕 - 修改為搜尋功能 */}
+        {/* 管理標籤按鈕 */}
         <button
           onClick={() => setShowManageModal(true)}
           className="py-1.5 px-3.5 rounded text-sm font-medium transition-all duration-300 bg-gray-800 text-gray-300 hover:bg-pink-700 hover:text-white border border-gray-600 hover:border-white flex items-center"
         >
           <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
           </svg>
-          搜尋內容
+          管理標籤
         </button>
 
         {/* 標籤列表 - 完全按照 LibreTV 的渲染邏輯 */}
@@ -223,7 +232,7 @@ const DoubanTagSystem: React.FC<DoubanTagSystemProps> = ({ type, specificCategor
             </button>
 
             <h3 className="text-xl font-bold text-white mb-4">
-              內容搜尋 - {specificCategory || (type === 'movie' ? '電影' : '電視劇')}
+              標籤管理 - {specificCategory || (type === 'movie' ? '電影' : '電視劇')}
             </h3>
 
             <div className="mb-4">
@@ -271,9 +280,9 @@ const DoubanTagSystem: React.FC<DoubanTagSystemProps> = ({ type, specificCategor
               </div>
             </div>
 
-            {/* 添加新標籤 - 修改為搜尋功能 */}
+            {/* 添加新標籤 */}
             <div className="border-t border-gray-700 pt-4">
-              <h4 className="text-lg font-medium text-gray-300 mb-3">搜尋內容</h4>
+              <h4 className="text-lg font-medium text-gray-300 mb-3">添加新標籤</h4>
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
@@ -285,18 +294,18 @@ const DoubanTagSystem: React.FC<DoubanTagSystemProps> = ({ type, specificCategor
                   type="text"
                   value={newTag}
                   onChange={(e) => setNewTag(e.target.value)}
-                  placeholder="輸入搜尋關鍵字（如：柯南）..."
+                  placeholder="輸入標籤名稱（如：柯南）..."
                   className="flex-1 bg-gray-800 text-white border border-gray-700 rounded px-3 py-2 focus:outline-none focus:border-pink-500"
                 />
                 <button
                   type="submit"
                   className="ml-2 bg-pink-600 hover:bg-pink-700 text-white px-4 py-2 rounded"
                 >
-                  搜尋
+                  添加
                 </button>
               </form>
               <p className="text-xs text-gray-500 mt-2">
-                提示：輸入關鍵字後將跳轉到搜尋頁面顯示相關結果
+                提示：新增的標籤點擊後將跳轉到搜尋頁面
               </p>
             </div>
           </div>

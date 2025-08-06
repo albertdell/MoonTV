@@ -241,11 +241,6 @@ function DoubanPageClient() {
         {/* 標籤系統 - 根據分類使用不同的標籤管理 */}
         {type && <DoubanTagSystem type={type as 'movie' | 'tv'} specificCategory={title || undefined} />}
         
-        {/* 調試信息 */}
-        <div className="mb-4 p-4 bg-gray-100 dark:bg-gray-800 rounded">
-          <p className="text-sm">調試信息: type={type}, tag={tag}, title={title}</p>
-          <p className="text-sm">當前分類: {title || (type === 'movie' ? '電影' : '電視劇')}</p>
-        </div>
 
         {/* 排序器 */}
         {type && tag && (
