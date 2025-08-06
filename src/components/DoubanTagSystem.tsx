@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 interface DoubanTagSystemProps {
@@ -54,8 +54,10 @@ const DoubanTagSystem: React.FC<DoubanTagSystemProps> = ({ type, specificCategor
   const [showManageModal, setShowManageModal] = useState(false);
   const [newTag, setNewTag] = useState('');
   
-  // 獲取當前分類的唯一標識符 - 修復電視劇分類共享問題
-  const getCategoryKey = () => {
+  
+
+  // 獲取當前分類的唯一標識符 - 使用 useCallback 避免依賴警告
+  const getCategoryKeyCallback = useCallback(() => {
     if (specificCategory) {
       return specificCategory; // 日漫、美劇、日劇等
     }
@@ -67,12 +69,11 @@ const DoubanTagSystem: React.FC<DoubanTagSystemProps> = ({ type, specificCategor
     }
     
     return type; // movie
-  };
-  
+  }, [specificCategory, type, searchParams]);
 
   // 獨立分類標籤系統 - 每個分類完全獨立
   useEffect(() => {
-    const categoryKey = getCategoryKey();
+    const categoryKey = getCategoryKeyCallback();
     const categoryTags = getCategoryTags(type, specificCategory);
     
     try {
@@ -93,11 +94,11 @@ const DoubanTagSystem: React.FC<DoubanTagSystemProps> = ({ type, specificCategor
     } catch (error) {
       setTags(categoryTags);
     }
-  }, [type, specificCategory]);
+  }, [type, specificCategory, getCategoryKeyCallback]);
 
   // 獨立分類標籤保存系統
   const saveTags = (newTags: string[]) => {
-    const categoryKey = getCategoryKey();
+    const categoryKey = getCategoryKeyCallback();
     const storageKey = `moonTV_tags_${categoryKey}`;
     
     try {
@@ -208,14 +209,14 @@ const DoubanTagSystem: React.FC<DoubanTagSystemProps> = ({ type, specificCategor
         {/* 標籤列表 - 完全按照 LibreTV 的渲染邏輯 */}
         {tags.map((tag) => (
           <button
-            key={`${getCategoryKey()}-${tag}`}
+            key={`${getCategoryKeyCallback()}-${tag}`}
             onClick={() => handleTagClick(tag)}
             className={`py-1.5 px-3.5 rounded text-sm font-medium transition-all duration-300 border ${
               tag === currentTag
                 ? 'bg-pink-600 text-white shadow-md border-white'
                 : 'bg-gray-800 text-gray-300 hover:bg-pink-700 hover:text-white border-gray-600 hover:border-white'
             }`}
-            title={`分類: ${getCategoryKey()} | 標籤: ${tag}`}
+            title={`分類: ${getCategoryKeyCallback()} | 標籤: ${tag}`}
           >
             {tag}
           </button>
