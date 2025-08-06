@@ -77,17 +77,13 @@ const DoubanTagSystem: React.FC<DoubanTagSystemProps> = ({ type, specificCategor
         const parsedTags = JSON.parse(savedTags);
         if (Array.isArray(parsedTags) && parsedTags.length > 0) {
           setTags(parsedTags);
-          console.log(`✅ 載入 ${categoryKey} 的獨立標籤:`, parsedTags);
         } else {
           setTags(categoryTags);
-          console.log(`🔄 使用 ${categoryKey} 的默認標籤:`, categoryTags);
         }
       } else {
         setTags(categoryTags);
-        console.log(`🆕 初始化 ${categoryKey} 的標籤:`, categoryTags);
       }
     } catch (error) {
-      console.error(`❌ 載入 ${categoryKey} 標籤失敗:`, error);
       setTags(categoryTags);
     }
   }, [type, specificCategory]);
@@ -100,9 +96,8 @@ const DoubanTagSystem: React.FC<DoubanTagSystemProps> = ({ type, specificCategor
     try {
       localStorage.setItem(storageKey, JSON.stringify(newTags));
       setTags(newTags);
-      console.log(`✅ 保存 ${categoryKey} 的獨立標籤:`, newTags);
     } catch (error) {
-      console.error(`❌ 保存 ${categoryKey} 標籤失敗:`, error);
+      console.error('保存標籤失敗:', error);
     }
   };
 
