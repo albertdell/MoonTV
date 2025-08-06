@@ -4,62 +4,44 @@ import React, { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 interface DoubanTagSystemProps {
-  type: 'movie' | 'tv' | 'us_drama' | 'kr_drama' | 'jp_drama' | 'jp_anime' | 'variety';
+  type: 'movie' | 'tv';
   specificCategory?: string; // 新增：指定特定分類
 }
 
 // 根據不同分類定義不同的標籤系統
-const getCategoryTags = (type: 'movie' | 'tv' | 'us_drama' | 'kr_drama' | 'jp_drama' | 'jp_anime' | 'variety', category?: string) => {
-  switch (type) {
-    case 'movie':
-      if (category === 'top250') {
-        return ['全部', '经典', '剧情', '喜剧', '动作', '爱情', '科幻', '悬疑', '恐怖', '动画'];
-      }
-      // 電影的通用標籤（類型標籤）
-      return ['热门', '最新', '经典', '豆瓣高分', '冷门佳片', '华语', '欧美', '韩国', '日本', '动作', '喜剧', '爱情', '科幻', '悬疑', '恐怖', '治愈'];
-    
-    case 'variety':
-      return ['热门', '脱口秀', '真人秀', '音乐', '舞蹈', '喜剧', '访谈', '游戏', '美食', '旅行', '时尚', '体育'];
-    
-    case 'us_drama':
-      return ['热门', '剧情', '喜剧', '犯罪', '科幻', '奇幻', '惊悚', '动作', '爱情', '家庭', '医务', '律政'];
-    
-    case 'kr_drama':
-      return ['热门', '爱情', '剧情', '喜剧', '悬疑', '古装', '现代', '家庭', '职场', '校园', '医务', '法律'];
-    
-    case 'jp_drama':
-      return ['热门', '剧情', '爱情', '喜剧', '悬疑', '推理', '职场', '校园', '家庭', '医务', '料理', '时代'];
-    
-    case 'jp_anime':
-      return ['热门', '冒险', '动作', '喜剧', '剧情', '奇幻', '科幻', '恋爱', '校园', '运动', '音乐', '治愈'];
-    
-    case 'tv':
-    default:
-      // 電視劇根據不同分類使用不同標籤（保持向後兼容）
-      switch (category) {
-        case '综艺':
-          return ['热门', '脱口秀', '真人秀', '音乐', '舞蹈', '喜剧', '访谈', '游戏', '美食', '旅行', '时尚', '体育'];
-        case '美剧':
-          return ['热门', '剧情', '喜剧', '犯罪', '科幻', '奇幻', '惊悚', '动作', '爱情', '家庭', '医务', '律政'];
-        case '韩剧':
-          return ['热门', '爱情', '剧情', '喜剧', '悬疑', '古装', '现代', '家庭', '职场', '校园', '医务', '法律'];
-        case '日剧':
-          return ['热门', '剧情', '爱情', '喜剧', '悬疑', '推理', '职场', '校园', '家庭', '医务', '料理', '时代'];
-        case '日本动画':
-        case '日漫':
-          return ['热门', '冒险', '动作', '喜剧', '剧情', '奇幻', '科幻', '恋爱', '校园', '运动', '音乐', '治愈'];
-        case '英剧':
-          return ['热门', '剧情', '喜剧', '犯罪', '历史', '科幻', '奇幻', '悬疑', '家庭', '传记'];
-        case '国产剧':
-          return ['热门', '古装', '现代', '都市', '农村', '军旅', '谍战', '家庭', '青春', '职场'];
-        case '港剧':
-          return ['热门', '警匪', '商战', '家庭', '武侠', '时装', '古装', '喜剧', '悬疑'];
-        case '纪录片':
-          return ['热门', '自然', '历史', '科学', '社会', '人物', '旅行', '美食', '艺术', '军事'];
-        default:
-          // 電視劇的通用標籤
-          return ['热门', '美剧', '英剧', '韩剧', '日剧', '国产剧', '港剧', '日本动画', '综艺', '纪录片'];
-      }
+const getCategoryTags = (type: 'movie' | 'tv', category?: string) => {
+  if (type === 'movie') {
+    if (category === 'top250') {
+      return ['全部', '经典', '剧情', '喜剧', '动作', '爱情', '科幻', '悬疑', '恐怖', '动画'];
+    }
+    // 電影的通用標籤（類型標籤）
+    return ['热门', '最新', '经典', '豆瓣高分', '冷门佳片', '华语', '欧美', '韩国', '日本', '动作', '喜剧', '爱情', '科幻', '悬疑', '恐怖', '治愈'];
+  } else {
+    // 電視劇根據不同分類使用不同標籤
+    switch (category) {
+      case '综艺':
+        return ['热门', '脱口秀', '真人秀', '音乐', '舞蹈', '喜剧', '访谈', '游戏', '美食', '旅行', '时尚', '体育'];
+      case '美剧':
+        return ['热门', '剧情', '喜剧', '犯罪', '科幻', '奇幻', '惊悚', '动作', '爱情', '家庭', '医务', '律政'];
+      case '韩剧':
+        return ['热门', '爱情', '剧情', '喜剧', '悬疑', '古装', '现代', '家庭', '职场', '校园', '医务', '法律'];
+      case '日剧':
+        return ['热门', '剧情', '爱情', '喜剧', '悬疑', '推理', '职场', '校园', '家庭', '医务', '料理', '时代'];
+      case '日本动画':
+      case '日漫':
+        return ['热门', '冒险', '动作', '喜剧', '剧情', '奇幻', '科幻', '恋爱', '校园', '运动', '音乐', '治愈'];
+      case '英剧':
+        return ['热门', '剧情', '喜剧', '犯罪', '历史', '科幻', '奇幻', '悬疑', '家庭', '传记'];
+      case '国产剧':
+        return ['热门', '古装', '现代', '都市', '农村', '军旅', '谍战', '家庭', '青春', '职场'];
+      case '港剧':
+        return ['热门', '警匪', '商战', '家庭', '武侠', '时装', '古装', '喜剧', '悬疑'];
+      case '纪录片':
+        return ['热门', '自然', '历史', '科学', '社会', '人物', '旅行', '美食', '艺术', '军事'];
+      default:
+        // 電視劇的通用標籤
+        return ['热门', '美剧', '英剧', '韩剧', '日剧', '国产剧', '港剧', '日本动画', '综艺', '纪录片'];
+    }
   }
 };
 
@@ -80,15 +62,13 @@ const DoubanTagSystem: React.FC<DoubanTagSystemProps> = ({ type, specificCategor
     return type; // movie 或 tv
   };
   
-  // 開發環境下的調試信息
-  if (process.env.NODE_ENV === 'development') {
-    console.log(`🔍 DoubanTagSystem 當前分類: type=${type}, specificCategory=${specificCategory}, categoryKey=${getCategoryKey()}`);
-    
-    // 檢查電視劇分類是否缺少 specificCategory 參數
-    if (type === 'tv' && !specificCategory) {
-      console.error('❌ 錯誤：電視劇分類缺少 specificCategory 參數！這會導致標籤混合！');
-      console.error('當前 URL 參數:', window.location.search);
-    }
+  // 調試：顯示當前分類信息
+  console.log(`🔍 DoubanTagSystem 當前分類: type=${type}, specificCategory=${specificCategory}, categoryKey=${getCategoryKey()}`);
+  
+  // 🚨 緊急檢查：如果是電視劇但沒有 specificCategory，這是錯誤的！
+  if (type === 'tv' && !specificCategory) {
+    console.error('❌ 錯誤：電視劇分類缺少 specificCategory 參數！這會導致標籤混合！');
+    console.error('當前 URL 參數:', window.location.search);
   }
 
   // 獨立分類標籤系統 - 每個分類完全獨立
@@ -105,25 +85,17 @@ const DoubanTagSystem: React.FC<DoubanTagSystemProps> = ({ type, specificCategor
         const parsedTags = JSON.parse(savedTags);
         if (Array.isArray(parsedTags) && parsedTags.length > 0) {
           setTags(parsedTags);
-          if (process.env.NODE_ENV === 'development') {
-            console.log(`✅ 載入 ${categoryKey} 的獨立標籤:`, parsedTags);
-          }
+          console.log(`✅ 載入 ${categoryKey} 的獨立標籤:`, parsedTags);
         } else {
           setTags(categoryTags);
-          if (process.env.NODE_ENV === 'development') {
-            console.log(`🔄 使用 ${categoryKey} 的默認標籤:`, categoryTags);
-          }
+          console.log(`🔄 使用 ${categoryKey} 的默認標籤:`, categoryTags);
         }
       } else {
         setTags(categoryTags);
-        if (process.env.NODE_ENV === 'development') {
-          console.log(`🆕 初始化 ${categoryKey} 的標籤:`, categoryTags);
-        }
+        console.log(`🆕 初始化 ${categoryKey} 的標籤:`, categoryTags);
       }
     } catch (error) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error(`❌ 載入 ${categoryKey} 標籤失敗:`, error);
-      }
+      console.error(`❌ 載入 ${categoryKey} 標籤失敗:`, error);
       setTags(categoryTags);
     }
   }, [type, specificCategory]);
@@ -136,13 +108,9 @@ const DoubanTagSystem: React.FC<DoubanTagSystemProps> = ({ type, specificCategor
     try {
       localStorage.setItem(storageKey, JSON.stringify(newTags));
       setTags(newTags);
-      if (process.env.NODE_ENV === 'development') {
-        console.log(`✅ 保存 ${categoryKey} 的獨立標籤:`, newTags);
-      }
+      console.log(`✅ 保存 ${categoryKey} 的獨立標籤:`, newTags);
     } catch (error) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error(`❌ 保存 ${categoryKey} 標籤失敗:`, error);
-      }
+      console.error(`❌ 保存 ${categoryKey} 標籤失敗:`, error);
     }
   };
 
@@ -164,7 +132,7 @@ const DoubanTagSystem: React.FC<DoubanTagSystemProps> = ({ type, specificCategor
     }
   };
 
-  // 添加標籤 - 完全按照 LibreTV 的邏輯
+  // 添加標籤 - 修改為跳轉到搜尋頁面
   const addTag = (tag: string) => {
     // 安全處理標籤名，防止XSS
     const safeTag = tag
@@ -175,19 +143,12 @@ const DoubanTagSystem: React.FC<DoubanTagSystemProps> = ({ type, specificCategor
 
     if (!safeTag) return;
 
-    // 檢查是否已存在（忽略大小寫）
-    const exists = tags.some(
-      existingTag => existingTag.toLowerCase() === safeTag.toLowerCase()
-    );
-
-    if (exists) {
-      alert('標籤已存在');
-      return;
-    }
-
-    const newTags = [...tags, safeTag];
-    saveTags(newTags);
+    // 直接跳轉到搜尋頁面，不再檢查是否已存在
     setNewTag('');
+    setShowManageModal(false);
+    
+    // 跳轉到搜尋頁面
+    router.push(`/search?q=${encodeURIComponent(safeTag)}`);
   };
 
   // 刪除標籤 - 完全按照 LibreTV 的邏輯
@@ -222,15 +183,15 @@ const DoubanTagSystem: React.FC<DoubanTagSystemProps> = ({ type, specificCategor
     <div className="mb-6">
       {/* 標籤容器 - 完全按照 LibreTV 的樣式 */}
       <div className="flex flex-wrap gap-2">
-        {/* 管理標籤按鈕 - 完全按照 LibreTV 的設計 */}
+        {/* 搜尋按鈕 - 修改為搜尋功能 */}
         <button
           onClick={() => setShowManageModal(true)}
           className="py-1.5 px-3.5 rounded text-sm font-medium transition-all duration-300 bg-gray-800 text-gray-300 hover:bg-pink-700 hover:text-white border border-gray-600 hover:border-white flex items-center"
         >
           <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
           </svg>
-          管理標籤
+          搜尋內容
         </button>
 
         {/* 標籤列表 - 完全按照 LibreTV 的渲染邏輯 */}
@@ -262,7 +223,7 @@ const DoubanTagSystem: React.FC<DoubanTagSystemProps> = ({ type, specificCategor
             </button>
 
             <h3 className="text-xl font-bold text-white mb-4">
-              標籤管理 - {specificCategory || (type === 'movie' ? '電影' : '電視劇')}
+              內容搜尋 - {specificCategory || (type === 'movie' ? '電影' : '電視劇')}
             </h3>
 
             <div className="mb-4">
@@ -310,9 +271,9 @@ const DoubanTagSystem: React.FC<DoubanTagSystemProps> = ({ type, specificCategor
               </div>
             </div>
 
-            {/* 添加新標籤 - 完全按照 LibreTV 的表單設計 */}
+            {/* 添加新標籤 - 修改為搜尋功能 */}
             <div className="border-t border-gray-700 pt-4">
-              <h4 className="text-lg font-medium text-gray-300 mb-3">添加新標籤</h4>
+              <h4 className="text-lg font-medium text-gray-300 mb-3">搜尋內容</h4>
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
@@ -324,18 +285,18 @@ const DoubanTagSystem: React.FC<DoubanTagSystemProps> = ({ type, specificCategor
                   type="text"
                   value={newTag}
                   onChange={(e) => setNewTag(e.target.value)}
-                  placeholder="輸入標籤名稱..."
+                  placeholder="輸入搜尋關鍵字（如：柯南）..."
                   className="flex-1 bg-gray-800 text-white border border-gray-700 rounded px-3 py-2 focus:outline-none focus:border-pink-500"
                 />
                 <button
                   type="submit"
                   className="ml-2 bg-pink-600 hover:bg-pink-700 text-white px-4 py-2 rounded"
                 >
-                  添加
+                  搜尋
                 </button>
               </form>
               <p className="text-xs text-gray-500 mt-2">
-                提示：標籤名稱不能為空，不能重複，不能包含特殊字符
+                提示：輸入關鍵字後將跳轉到搜尋頁面顯示相關結果
               </p>
             </div>
           </div>

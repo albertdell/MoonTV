@@ -70,11 +70,9 @@ export async function GET(request: Request) {
     );
   }
 
-  // 支持的分類類型
-  const validTypes = ['tv', 'movie', 'us_drama', 'kr_drama', 'jp_drama', 'jp_anime', 'variety'];
-  if (!validTypes.includes(type)) {
+  if (!['tv', 'movie'].includes(type)) {
     return NextResponse.json(
-      { error: `type 参数必须是以下之一: ${validTypes.join(', ')}` },
+      { error: 'type 参数必须是 tv 或 movie' },
       { status: 400 }
     );
   }
@@ -96,29 +94,6 @@ export async function GET(request: Request) {
   if (tag === 'top250') {
     return handleTop250(pageStart);
   }
-
-  // 分類類型到豆瓣 API type 的映射
-  const typeMapping: { [key: string]: string } = {
-    'movie': 'movie',
-    'tv': 'tv',
-    'us_drama': 'tv',
-    'kr_drama': 'tv', 
-    'jp_drama': 'tv',
-    'jp_anime': 'tv',
-    'variety': 'tv'
-  };
-
-  // 分類類型到默認標籤的映射
-  const defaultTagMapping: { [key: string]: string } = {
-    'us_drama': '美剧',
-    'kr_drama': '韩剧',
-    'jp_drama': '日剧',
-    'jp_anime': '日本动画',
-    'variety': '综艺'
-  };
-
-  // 確定實際的豆瓣 API type
-  const actualType = typeMapping[type] || type;
 
   // 參考 LibreTV 的實現 - 建立正確的標籤映射
   let finalTag = tag;
@@ -161,17 +136,12 @@ export async function GET(request: Request) {
     '动画': '动画'
   };
   
-  // 如果是新的分類類型且標籤是"热门"，使用默認標籤
-  if (tag === '热门' && defaultTagMapping[type]) {
-    finalTag = defaultTagMapping[type];
-  } else {
-    // 使用映射表獲取正確的標籤
-    finalTag = tagMapping[tag] || tag;
-  }
+  // 使用映射表獲取正確的標籤
+  finalTag = tagMapping[tag] || tag;
   
   // 特殊處理：如果有 title 參數，說明是在特定分類下
   // 需要組合分類和標籤來獲取正確的結果
-  if (title && (type === 'tv' || actualType === 'tv')) {
+  if (title && type === 'tv') {
     // 對於電視劇的特定分類，組合查詢
     const categoryMapping: { [key: string]: string } = {
       '日漫': '日本动画',
@@ -208,7 +178,7 @@ export async function GET(request: Request) {
     finalTag = year; // 年份不需要映射
   }
 
-  const target = `https://movie.douban.com/j/search_subjects?type=${actualType}&tag=${encodeURIComponent(finalTag)}&sort=${sort}&page_limit=${pageSize}&page_start=${pageStart}`;
+  const target = `https://movie.douban.com/j/search_subjects?type=${type}&tag=${encodeURIComponent(finalTag)}&sort=${sort}&page_limit=${pageSize}&page_start=${pageStart}`;
 
   try {
     // 緊急修復：使用第三方 CORS 代理

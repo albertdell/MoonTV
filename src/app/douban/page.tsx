@@ -209,21 +209,7 @@ function DoubanPageClient() {
     // 如果 title 参数不存在，根据 type 和 tag 拼接
     if (!type || !tag) return '豆瓣内容';
 
-    // 分類顯示名稱映射
-    const getTypeText = (type: string) => {
-      switch (type) {
-        case 'movie': return '电影';
-        case 'tv': return '电视剧';
-        case 'us_drama': return '美剧';
-        case 'kr_drama': return '韩剧';
-        case 'jp_drama': return '日剧';
-        case 'jp_anime': return '日漫';
-        case 'variety': return '综艺';
-        default: return '未知分类';
-      }
-    };
-    
-    const typeText = getTypeText(type);
+    const typeText = type === 'movie' ? '电影' : '电视剧';
     const tagText = tag === 'top250' ? 'Top250' : tag;
 
     return `${typeText} - ${tagText}`;
@@ -253,12 +239,12 @@ function DoubanPageClient() {
         </div>
 
         {/* 標籤系統 - 根據分類使用不同的標籤管理 */}
-        {type && <DoubanTagSystem type={type as 'movie' | 'tv' | 'us_drama' | 'kr_drama' | 'jp_drama' | 'jp_anime' | 'variety'} specificCategory={title || undefined} />}
+        {type && <DoubanTagSystem type={type as 'movie' | 'tv'} specificCategory={title || undefined} />}
         
         {/* 調試信息 */}
         <div className="mb-4 p-4 bg-gray-100 dark:bg-gray-800 rounded">
           <p className="text-sm">調試信息: type={type}, tag={tag}, title={title}</p>
-          <p className="text-sm">當前分類: {title || getTypeText(type)}</p>
+          <p className="text-sm">當前分類: {title || (type === 'movie' ? '電影' : '電視劇')}</p>
         </div>
 
         {/* 排序器 */}

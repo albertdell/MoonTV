@@ -52,16 +52,16 @@ const MobileBottomNav = ({ activePath }: MobileBottomNavProps) => {
     {
       icon: Clover,
       label: '综艺',
-      href: '/douban?type=variety&tag=热门&title=综艺',
+      href: '/douban?type=tv&tag=综艺&title=综艺',
     },
-    { icon: Swords, label: '美剧', href: '/douban?type=us_drama&tag=热门&title=美剧' },
+    { icon: Swords, label: '美剧', href: '/douban?type=tv&tag=美剧' },
     {
       icon: MessageCircleHeart,
       label: '韩剧',
-      href: '/douban?type=kr_drama&tag=热门&title=韩剧',
+      href: '/douban?type=tv&tag=韩剧',
     },
-    { icon: MountainSnow, label: '日剧', href: '/douban?type=jp_drama&tag=热门&title=日剧' },
-    { icon: VenetianMask, label: '日漫', href: '/douban?type=jp_anime&tag=热门&title=日漫' },
+    { icon: MountainSnow, label: '日剧', href: '/douban?type=tv&tag=日剧' },
+    { icon: VenetianMask, label: '日漫', href: '/douban?type=tv&tag=日本动画' },
   ];
 
   const { siteName } = useSite();
