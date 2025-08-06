@@ -59,7 +59,14 @@ const DoubanTagSystem: React.FC<DoubanTagSystemProps> = ({ type, specificCategor
     if (specificCategory) {
       return specificCategory; // 日漫、美劇、日劇等
     }
-    return type; // movie 或 tv
+    
+    // 如果沒有 specificCategory，但是電視劇，使用當前標籤作為分類標識
+    if (type === 'tv') {
+      const currentTag = searchParams.get('tag') || '热门';
+      return currentTag; // 使用當前標籤作為分類標識
+    }
+    
+    return type; // movie
   };
   
 

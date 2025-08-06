@@ -239,7 +239,7 @@ function DoubanPageClient() {
         </div>
 
         {/* 標籤系統 - 根據分類使用不同的標籤管理 */}
-        {type && <DoubanTagSystem type={type as 'movie' | 'tv'} specificCategory={title || undefined} />}
+        {type && <DoubanTagSystem type={type as 'movie' | 'tv'} specificCategory={title || tag || undefined} />}
         
 
         {/* 排序器 */}
