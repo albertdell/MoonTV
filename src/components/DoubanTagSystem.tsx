@@ -109,42 +109,34 @@ const DoubanTagSystem: React.FC<DoubanTagSystemProps> = ({ type, specificCategor
     }
   };
 
-  // 處理標籤點擊 - 區分默認標籤和用戶標籤
+  // 處理標籤點擊 - 統一使用搜尋功能
   const handleTagClick = (tag: string) => {
-    // 獲取默認標籤列表
-    const defaultTags = getCategoryTags(type, specificCategory);
-    
-    // 如果是默認標籤，在分類中篩選
-    if (defaultTags.includes(tag)) {
-      if (tag !== currentTag) {
-        const params = new URLSearchParams(searchParams.toString());
-        params.set('tag', tag);
-        
-        // 確保 type 參數正確設置
-        params.set('type', type);
-        
-        // 如果有特定分類，保持 title 參數
-        if (specificCategory) {
-          params.set('title', specificCategory);
-        }
-        
-        router.push(`/douban?${params.toString()}`);
-      }
-    } else {
-      // 如果是用戶新增的標籤，使用豆瓣API搜尋而不是第三方搜尋API
-      // 構建豆瓣搜尋URL，保持在當前分類中但使用標籤作為搜尋關鍵字
-      const params = new URLSearchParams(searchParams.toString());
-      params.set('tag', tag); // 使用用戶標籤作為搜尋標籤
+    if (tag !== currentTag) {
+      // 構建搜尋關鍵字，結合分類和標籤
+      let searchQuery = tag;
       
-      // 確保 type 參數正確設置
-      params.set('type', type);
-      
-      // 如果有特定分類，保持 title 參數
+      // 如果有特定分類，在搜尋關鍵字前加上分類名稱以提高搜尋精確度
       if (specificCategory) {
-        params.set('title', specificCategory);
+        // 分類名稱映射，讓搜尋更精確
+        const categorySearchMap: { [key: string]: string } = {
+          '日本动画': '日本 动画',
+          '日漫': '日本 动画',
+          '美剧': '美国 电视剧',
+          '韩剧': '韩国 电视剧',
+          '日剧': '日本 电视剧',
+          '英剧': '英国 电视剧',
+          '国产剧': '中国 电视剧',
+          '港剧': '香港 电视剧',
+          '综艺': '综艺',
+          '纪录片': '纪录片'
+        };
+        
+        const categoryKeyword = categorySearchMap[specificCategory] || specificCategory;
+        searchQuery = `${categoryKeyword} ${tag}`;
       }
       
-      router.push(`/douban?${params.toString()}`);
+      // 跳轉到搜尋頁面
+      router.push(`/search?q=${encodeURIComponent(searchQuery)}`);
     }
   };
 
@@ -320,7 +312,7 @@ const DoubanTagSystem: React.FC<DoubanTagSystemProps> = ({ type, specificCategor
                 </button>
               </form>
               <p className="text-xs text-gray-500 mt-2">
-                提示：新增的標籤點擊後將跳轉到搜尋頁面
+                提示：點擊標籤將在當前分類中搜尋相關內容
               </p>
             </div>
           </div>
