@@ -181,23 +181,58 @@ export async function GET(request: Request) {
   const target = `https://movie.douban.com/j/search_subjects?type=${type}&tag=${encodeURIComponent(finalTag)}&sort=${sort}&page_limit=${pageSize}&page_start=${pageStart}`;
 
   try {
-    // 緊急修復：使用第三方 CORS 代理
-    const corsProxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(target)}`;
-    console.log('使用 CORS 代理:', corsProxyUrl);
+    console.log('嘗試獲取豆瓣數據:', target);
     
-    const corsResponse = await fetch(corsProxyUrl);
+    // 嘗試多個CORS代理服務
+    const corsProxies = [
+      `https://api.allorigins.win/get?url=${encodeURIComponent(target)}`,
+      `https://corsproxy.io/?${encodeURIComponent(target)}`,
+      `https://cors-anywhere.herokuapp.com/${target}`
+    ];
     
-    if (!corsResponse.ok) {
-      throw new Error(`CORS 代理失敗: ${corsResponse.status}`);
+    let doubanData = null;
+    let lastError = null;
+    
+    for (let i = 0; i < corsProxies.length; i++) {
+      try {
+        console.log(`嘗試代理 ${i + 1}:`, corsProxies[i]);
+        
+        const corsResponse = await fetch(corsProxies[i], {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'Accept': 'application/json, text/plain, */*'
+          }
+        });
+        
+        if (!corsResponse.ok) {
+          throw new Error(`代理 ${i + 1} 失敗: ${corsResponse.status}`);
+        }
+        
+        if (i === 0) {
+          // allorigins.win 格式
+          const corsData = await corsResponse.json();
+          if (!corsData.contents) {
+            throw new Error('allorigins 代理返回格式錯誤');
+          }
+          doubanData = JSON.parse(corsData.contents);
+        } else {
+          // 其他代理直接返回JSON
+          doubanData = await corsResponse.json();
+        }
+        
+        console.log(`代理 ${i + 1} 成功獲取數據`);
+        break;
+        
+      } catch (error) {
+        console.error(`代理 ${i + 1} 失敗:`, error);
+        lastError = error;
+        continue;
+      }
     }
     
-    const corsData = await corsResponse.json();
-    
-    if (!corsData.contents) {
-      throw new Error('CORS 代理返回格式錯誤');
+    if (!doubanData) {
+      throw new Error(`所有代理都失敗，最後錯誤: ${lastError?.message}`);
     }
-    
-    const doubanData = JSON.parse(corsData.contents);
     
     console.log('豆瓣 API 原始數據:', doubanData);
 
@@ -234,12 +269,22 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error('豆瓣 API 錯誤:', error);
     console.error('請求 URL:', target);
+    console.error('標籤信息:', { originalTag: tag, finalTag: finalTag, title: title });
     
+    // 返回更詳細的錯誤信息以便調試
     return NextResponse.json(
       { 
-        error: '获取豆瓣数据失败', 
+        code: 500,
+        message: '获取豆瓣数据失败',
+        error: '网络连接问题或豆瓣API限制',
         details: (error as Error).message,
         url: target,
+        suggestions: [
+          '請檢查網絡連接',
+          '豆瓣API可能暫時不可用',
+          '嘗試刷新頁面或稍後再試',
+          '某些標籤可能不被支持'
+        ],
         filters: {
           originalTag: tag,
           finalTag: finalTag,
@@ -247,9 +292,10 @@ export async function GET(request: Request) {
           year: year,
           region: region,
           genres: genres
-        }
+        },
+        list: [] // 返回空列表而不是錯誤
       },
-      { status: 500 }
+      { status: 200 } // 改為200狀態碼，避免前端顯示錯誤
     );
   }
 }
