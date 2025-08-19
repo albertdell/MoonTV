@@ -138,7 +138,6 @@ export async function GET(request: Request) {
     finalTag = tagMapping[tag];
   }
   
-  console.log(`標籤映射: ${tag} -> ${finalTag}${title ? ` (title: ${title})` : ''}`);
   
   // 優先級：類型 > 地區 > 年份 > 映射標籤
   if (genres && genres !== '') {
@@ -155,7 +154,6 @@ export async function GET(request: Request) {
   const target = `https://movie.douban.com/j/search_subjects?type=${type}&tag=${encodeURIComponent(finalTag)}&sort=${sort}&page_limit=${pageSize}&page_start=${pageStart}`;
 
   try {
-    console.log('嘗試獲取豆瓣數據:', target);
     
     // 嘗試多個CORS代理服務
     const corsProxies = [
@@ -169,7 +167,6 @@ export async function GET(request: Request) {
     
     for (let i = 0; i < corsProxies.length; i++) {
       try {
-        console.log(`嘗試代理 ${i + 1}:`, corsProxies[i]);
         
         const corsResponse = await fetch(corsProxies[i], {
           headers: {
@@ -194,7 +191,6 @@ export async function GET(request: Request) {
           doubanData = await corsResponse.json();
         }
         
-        console.log(`代理 ${i + 1} 成功獲取數據`);
         break;
         
       } catch (error) {
@@ -208,11 +204,8 @@ export async function GET(request: Request) {
       throw new Error(`所有代理都失敗，最後錯誤: ${lastError?.message || '未知錯誤'}`);
     }
     
-    console.log('豆瓣 API 原始數據:', doubanData);
-
-    // 检查数据结构
+    // 檢查數據格式
     if (!doubanData.subjects || !Array.isArray(doubanData.subjects)) {
-      console.error('豆瓣 API 數據格式錯誤:', doubanData);
       throw new Error('豆瓣 API 返回數據格式錯誤');
     }
 
@@ -224,7 +217,6 @@ export async function GET(request: Request) {
       rate: item.rate,
     }));
     
-    console.log(`轉換後的數據列表 (${list.length} 項):`, list);
 
     const result: DoubanResult = {
       code: 200,

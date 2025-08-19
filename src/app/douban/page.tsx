@@ -28,7 +28,6 @@ function DoubanPageClient() {
   const [filters, setFilters] = useState<FilterOptions>({
     sort: 'recommend',
   });
-  const [isTagManagerOpen, setTagManagerOpen] = useState(false);
   // 移除舊的標籤狀態 - 現在由 DoubanTagSystem 獨立管理
   const observerRef = useRef<IntersectionObserver | null>(null);
   const loadingRef = useRef<HTMLDivElement>(null);
@@ -110,16 +109,13 @@ function DoubanPageClient() {
       try {
         setLoading(true);
         const queryString = buildQueryParams(0);
-        console.log('發送請求到:', `/api/douban?${queryString}`);
         const response = await fetch(`/api/douban?${queryString}`);
 
         if (!response.ok) {
-          console.error('API 響應錯誤:', response.status, response.statusText);
           throw new Error('获取豆瓣数据失败');
         }
 
         const data: DoubanResult = await response.json();
-        console.log('收到數據:', data);
 
         if (data.code === 200) {
           setDoubanData(data.list);

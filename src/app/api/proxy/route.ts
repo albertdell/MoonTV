@@ -30,7 +30,6 @@ export async function GET(request: Request) {
     );
   }
 
-  console.log('代理請求目標:', targetUrl);
 
   // 多重代理服務列表 - 參考LibreTV的實現
   const proxyServices = [
@@ -65,7 +64,6 @@ export async function GET(request: Request) {
   // 依次嘗試每個代理服務
   for (const proxy of proxyServices) {
     try {
-      console.log(`嘗試代理服務: ${proxy.name}`);
       
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 8000); // 8秒超時
@@ -94,7 +92,6 @@ export async function GET(request: Request) {
       const rawData = await response.json();
       const data = proxy.transform(rawData);
       
-      console.log(`代理服務 ${proxy.name} 成功，數據長度:`, JSON.stringify(data).length);
 
       return NextResponse.json(data, {
         headers: {
