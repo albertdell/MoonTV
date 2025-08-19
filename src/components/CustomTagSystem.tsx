@@ -84,7 +84,7 @@ const CustomTagSystem: React.FC<CustomTagSystemProps> = ({ type, specificCategor
       const searchQuery = tag;
       
       // 跳轉到搜尋頁面
-      router.push(`/search?query=${encodeURIComponent(searchQuery)}`);
+      router.push(`/search?q=${encodeURIComponent(searchQuery)}`);
     }
   };
 
