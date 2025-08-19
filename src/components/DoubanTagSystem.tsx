@@ -8,13 +8,13 @@ interface DoubanTagSystemProps {
   specificCategory?: string; // 新增：指定特定分類
 }
 
-// 根據不同分類定義不同的標籤系統
-const getCategoryTags = (type: 'movie' | 'tv', category?: string) => {
+// 默認標籤定義 - 參考LibreTV的實現
+const getDefaultTags = (type: 'movie' | 'tv', category?: string) => {
   if (type === 'movie') {
     if (category === 'top250') {
       return ['全部', '经典', '剧情', '喜剧', '动作', '爱情', '科幻', '悬疑', '恐怖', '动画'];
     }
-    // 電影的通用標籤（類型標籤）
+    // 電影的默認標籤
     return ['热门', '最新', '经典', '豆瓣高分', '冷门佳片', '华语', '欧美', '韩国', '日本', '动作', '喜剧', '爱情', '科幻', '悬疑', '恐怖', '治愈'];
   } else {
     // 電視劇根據不同分類使用不同標籤
@@ -39,9 +39,37 @@ const getCategoryTags = (type: 'movie' | 'tv', category?: string) => {
       case '纪录片':
         return ['热门', '自然', '历史', '科学', '社会', '人物', '旅行', '美食', '艺术', '军事'];
       default:
-        // 電視劇的通用標籤
+        // 電視劇的默認標籤
         return ['热门', '美剧', '英剧', '韩剧', '日剧', '国产剧', '港剧', '日本动画', '综艺', '纪录片'];
     }
+  }
+};
+
+// 從本地存儲加載用戶標籤
+const loadUserTags = (type: 'movie' | 'tv', category?: string): string[] => {
+  try {
+    const storageKey = `moonTV_douban_tags_${category || type}`;
+    const savedTags = localStorage.getItem(storageKey);
+    
+    if (savedTags) {
+      return JSON.parse(savedTags);
+    } else {
+      // 如果沒有保存的標籤，使用默認標籤
+      return getDefaultTags(type, category);
+    }
+  } catch (e) {
+    console.error('加載用戶標籤失敗:', e);
+    return getDefaultTags(type, category);
+  }
+};
+
+// 保存用戶標籤到本地存儲
+const saveUserTags = (tags: string[], type: 'movie' | 'tv', category?: string) => {
+  try {
+    const storageKey = `moonTV_douban_tags_${category || type}`;
+    localStorage.setItem(storageKey, JSON.stringify(tags));
+  } catch (e) {
+    console.error('保存用戶標籤失敗:', e);
   }
 };
 
@@ -73,40 +101,30 @@ const DoubanTagSystem: React.FC<DoubanTagSystemProps> = ({ type, specificCategor
 
   // 獨立分類標籤系統 - 每個分類完全獨立
   useEffect(() => {
-    const categoryKey = getCategoryKeyCallback();
-    const categoryTags = getCategoryTags(type, specificCategory);
-    
-    try {
-      // 每個分類使用完全獨立的 localStorage key
-      const storageKey = `moonTV_douban_tags_${categoryKey}`;
-      
-      const savedTags = localStorage.getItem(storageKey);
-      if (savedTags) {
-        const parsedTags = JSON.parse(savedTags);
-        if (Array.isArray(parsedTags) && parsedTags.length > 0) {
-          setTags(parsedTags);
-        } else {
-          setTags(categoryTags);
-        }
-      } else {
-        setTags(categoryTags);
-      }
-    } catch (error) {
-      setTags(categoryTags);
+    // 使用新的標籤加載函數
+    if (typeof window !== 'undefined') {
+      const userTags = loadUserTags(type, specificCategory);
+      setTags(userTags);
+    } else {
+      const defaultTags = getDefaultTags(type, specificCategory);
+      setTags(defaultTags);
     }
-  }, [type, specificCategory, getCategoryKeyCallback]);
+  }, [type, specificCategory]);
 
   // 獨立分類標籤保存系統
   const saveTags = (newTags: string[]) => {
-    const categoryKey = getCategoryKeyCallback();
-    const storageKey = `moonTV_douban_tags_${categoryKey}`;
-    
     try {
-      localStorage.setItem(storageKey, JSON.stringify(newTags));
+      saveUserTags(newTags, type, specificCategory);
       setTags(newTags);
     } catch (error) {
       console.error('保存標籤失敗:', error);
     }
+  };
+
+  // 重置到默認標籤
+  const resetToDefaultTags = () => {
+    const defaultTags = getDefaultTags(type, specificCategory);
+    saveTags(defaultTags);
   };
 
   // 處理標籤點擊 - 使用豆瓣分類功能（原始功能）
@@ -279,7 +297,7 @@ const DoubanTagSystem: React.FC<DoubanTagSystemProps> = ({ type, specificCategor
                   e.preventDefault();
                   addTag(newTag);
                 }}
-                className="flex items-center"
+                className="flex items-center mb-4"
               >
                 <input
                   type="text"
@@ -295,9 +313,19 @@ const DoubanTagSystem: React.FC<DoubanTagSystemProps> = ({ type, specificCategor
                   添加
                 </button>
               </form>
-              <p className="text-xs text-gray-500 mt-2">
-                提示：點擊標籤將顯示該豆瓣分類的影片
-              </p>
+              
+              {/* 重置按鈕 */}
+              <div className="border-t border-gray-700 pt-4">
+                <button
+                  onClick={resetToDefaultTags}
+                  className="w-full bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded mb-2"
+                >
+                  重置為默認標籤
+                </button>
+                <p className="text-xs text-gray-500">
+                  提示：點擊標籤將顯示該豆瓣分類的影片。重置將恢復到系統默認標籤。
+                </p>
+              </div>
             </div>
           </div>
         </div>

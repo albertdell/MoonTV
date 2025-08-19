@@ -95,80 +95,50 @@ export async function GET(request: Request) {
     return handleTop250(pageStart);
   }
 
-  // 參考 LibreTV 的實現 - 建立正確的標籤映射
-  let finalTag = tag;
-  
-  // 特殊標籤映射 - 解決美劇、日劇、日漫等分類問題
+  // 簡化標籤映射 - 參考LibreTV的直接映射方式
   const tagMapping: { [key: string]: string } = {
-    // 電視劇分類映射
+    // 電視劇分類映射 - 直接使用豆瓣支持的標籤
     '美剧': '美剧',
-    '韩剧': '韩剧', 
-    '日剧': '日剧',
+    '日剧': '日剧', 
+    '韩剧': '韩剧',
+    '英剧': '英剧',
     '国产剧': '国产剧',
     '港剧': '港剧',
-    '英剧': '英剧',
     '日本动画': '日本动画',
-    '日漫': '日本动画', // 日漫映射到日本动画
+    '日漫': '日本动画',
     '综艺': '综艺',
     '纪录片': '纪录片',
-    
     // 電影分類映射
-    '热门': '热门',
-    '最新': '最新',
-    '经典': '经典',
-    '豆瓣高分': '豆瓣高分',
-    '冷门佳片': '冷门佳片',
     '华语': '华语',
     '欧美': '欧美',
     '韩国': '韩国',
     '日本': '日本',
-    
-    // 類型標籤
     '动作': '动作',
     '喜剧': '喜剧',
     '爱情': '爱情',
-    '恋爱': '爱情', // 恋爱映射到爱情
     '科幻': '科幻',
     '悬疑': '悬疑',
     '恐怖': '恐怖',
     '治愈': '治愈',
-    '剧情': '剧情',
-    '奇幻': '奇幻',
-    '动画': '动画',
-    '冒险': '冒险',
-    '运动': '运动',
-    '音乐': '音乐'
+    '豆瓣高分': '豆瓣高分',
+    // 通用標籤
+    '热门': '热门',
+    '最新': '最新',
+    '经典': '经典',
+    '冷门佳片': '冷门佳片'
   };
+
+  // 優先級選擇：title > tag，簡化邏輯
+  let finalTag = tag;
   
-  // 使用映射表獲取正確的標籤
-  finalTag = tagMapping[tag] || tag;
-  
-  // 特殊處理：如果有 title 參數，說明是在特定分類下
-  // 需要組合分類和標籤來獲取正確的結果
-  if (title && type === 'tv') {
-    // 對於電視劇的特定分類，組合查詢
-    const categoryMapping: { [key: string]: string } = {
-      '日漫': '日本动画',
-      '美剧': '美剧',
-      '韩剧': '韩剧',
-      '日剧': '日剧',
-      '综艺': '综艺',
-      '英剧': '英剧',
-      '国产剧': '国产剧',
-      '港剧': '港剧',
-      '纪录片': '纪录片'
-    };
-    
-    const categoryTag = categoryMapping[title] || title;
-    
-    // 如果標籤不是 "热门"，嘗試組合查詢
-    if (tag !== '热门' && tag !== categoryTag) {
-      // 對於用戶創建的標籤，組合分類和標籤
-      finalTag = `${categoryTag} ${tag}`;
-    } else {
-      finalTag = categoryTag;
-    }
+  // 如果有title參數且在映射表中，優先使用title
+  if (title && tagMapping[title]) {
+    finalTag = tagMapping[title];
+  } else if (tagMapping[tag]) {
+    finalTag = tagMapping[tag];
   }
+  
+  console.log(`標籤映射: ${tag} -> ${finalTag}${title ? ` (title: ${title})` : ''}`);
   
   // 優先級：類型 > 地區 > 年份 > 映射標籤
   if (genres && genres !== '') {
