@@ -9,6 +9,7 @@ import { DoubanItem, DoubanResult } from '@/lib/types';
 import DoubanCardSkeleton from '@/components/DoubanCardSkeleton';
 import DoubanFilters from '@/components/DoubanFilters';
 import DoubanTagSystem from '@/components/DoubanTagSystem';
+import CustomTagSystem from '@/components/CustomTagSystem';
 import PageLayout from '@/components/PageLayout';
 import VideoCard from '@/components/VideoCard';
 
@@ -238,8 +239,11 @@ function DoubanPageClient() {
           <p className='text-gray-600 dark:text-gray-400'>来自豆瓣的精选内容</p>
         </div>
 
-        {/* 標籤系統 - 根據分類使用不同的標籤管理 */}
+        {/* 豆瓣標籤系統 - 原始分類功能 */}
         {type && <DoubanTagSystem type={type as 'movie' | 'tv'} specificCategory={title || tag || undefined} />}
+        
+        {/* 自訂標籤系統 - 搜尋功能 */}
+        {type && <CustomTagSystem type={type as 'movie' | 'tv'} specificCategory={title || tag || undefined} />}
         
 
         {/* 排序器 */}

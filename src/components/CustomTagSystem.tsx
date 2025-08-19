@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
-interface DoubanTagSystemProps {
+interface CustomTagSystemProps {
   type: 'movie' | 'tv';
   specificCategory?: string; // 新增：指定特定分類
 }
@@ -45,7 +45,7 @@ const getCategoryTags = (type: 'movie' | 'tv', category?: string) => {
   }
 };
 
-const DoubanTagSystem: React.FC<DoubanTagSystemProps> = ({ type, specificCategory }) => {
+const CustomTagSystem: React.FC<CustomTagSystemProps> = ({ type, specificCategory }) => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const currentTag = searchParams.get('tag') || '热门';
@@ -53,13 +53,12 @@ const DoubanTagSystem: React.FC<DoubanTagSystemProps> = ({ type, specificCategor
   const [tags, setTags] = useState<string[]>([]);
   const [showManageModal, setShowManageModal] = useState(false);
   const [newTag, setNewTag] = useState('');
-  
-  
 
-  // 獲取當前分類的唯一標識符 - 使用 useCallback 避免依賴警告
+  // 生成分類鍵值 - 每個分類完全獨立
   const getCategoryKeyCallback = useCallback(() => {
+    // 如果有 specificCategory，直接使用
     if (specificCategory) {
-      return specificCategory; // 日漫、美劇、日劇等
+      return `${type}_${specificCategory}`;
     }
     
     // 如果沒有 specificCategory，但是電視劇，使用當前標籤作為分類標識
@@ -68,8 +67,8 @@ const DoubanTagSystem: React.FC<DoubanTagSystemProps> = ({ type, specificCategor
       return currentTag; // 使用當前標籤作為分類標識
     }
     
-    return type; // movie
-  }, [specificCategory, type, searchParams]);
+    return type; // 電影直接使用 type
+  }, [type, specificCategory, searchParams]);
 
   // 獨立分類標籤系統 - 每個分類完全獨立
   useEffect(() => {
@@ -77,8 +76,7 @@ const DoubanTagSystem: React.FC<DoubanTagSystemProps> = ({ type, specificCategor
     const categoryTags = getCategoryTags(type, specificCategory);
     
     try {
-      // 每個分類使用完全獨立的 localStorage key
-      const storageKey = `moonTV_douban_tags_${categoryKey}`;
+      const storageKey = `moonTV_custom_tags_${categoryKey}`;
       
       const savedTags = localStorage.getItem(storageKey);
       if (savedTags) {
@@ -99,7 +97,7 @@ const DoubanTagSystem: React.FC<DoubanTagSystemProps> = ({ type, specificCategor
   // 獨立分類標籤保存系統
   const saveTags = (newTags: string[]) => {
     const categoryKey = getCategoryKeyCallback();
-    const storageKey = `moonTV_douban_tags_${categoryKey}`;
+    const storageKey = `moonTV_custom_tags_${categoryKey}`;
     
     try {
       localStorage.setItem(storageKey, JSON.stringify(newTags));
@@ -109,16 +107,15 @@ const DoubanTagSystem: React.FC<DoubanTagSystemProps> = ({ type, specificCategor
     }
   };
 
-  // 處理標籤點擊 - 使用豆瓣分類功能（原始功能）
+  // 處理標籤點擊 - 統一使用搜尋功能（自訂標籤的核心功能）
   const handleTagClick = (tag: string) => {
     if (tag !== currentTag) {
-      // 使用豆瓣分類 API - 恢復原始的分類功能
-      const params = new URLSearchParams(searchParams);
-      params.set('tag', tag);
+      // 直接使用標籤名稱作為搜尋關鍵字，不加分類前綴
+      // 因為第三方搜尋API用純關鍵字搜尋效果更好
+      const searchQuery = tag;
       
-      // 保持在豆瓣頁面，只更新標籤參數
-      const newUrl = `/douban?${params.toString()}`;
-      router.push(newUrl);
+      // 跳轉到搜尋頁面
+      router.push(`/search?query=${encodeURIComponent(searchQuery)}`);
     }
   };
 
@@ -169,8 +166,7 @@ const DoubanTagSystem: React.FC<DoubanTagSystemProps> = ({ type, specificCategor
   const resetTagsToDefault = () => {
     const defaultTags = getCategoryTags(type, specificCategory);
     saveTags(defaultTags);
-    setShowManageModal(false);
-    
+
     // 如果當前標籤不在默認標籤中，切換到熱門
     if (!defaultTags.includes(currentTag)) {
       handleTagClick('热门');
@@ -179,19 +175,17 @@ const DoubanTagSystem: React.FC<DoubanTagSystemProps> = ({ type, specificCategor
 
   return (
     <div className="mb-6">
-      {/* 豆瓣標籤標題 */}
-      <h3 className="text-lg font-semibold text-gray-200 mb-3">豆瓣標籤 (分類功能)</h3>
+      {/* 自訂標籤標題 */}
+      <h3 className="text-lg font-semibold text-gray-200 mb-3">自訂標籤 (搜尋功能)</h3>
+      
       {/* 標籤容器 - 完全按照 LibreTV 的樣式 */}
       <div className="flex flex-wrap gap-2">
         {/* 管理標籤按鈕 */}
         <button
           onClick={() => setShowManageModal(true)}
-          className="py-1.5 px-3.5 rounded text-sm font-medium transition-all duration-300 bg-gray-800 text-gray-300 hover:bg-pink-700 hover:text-white border border-gray-600 hover:border-white flex items-center"
+          className="py-1.5 px-3.5 rounded text-sm font-medium transition-all duration-300 border border-gray-600 bg-gray-700 text-gray-300 hover:bg-gray-600"
         >
-          <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-          </svg>
-          管理豆瓣標籤
+          管理自訂標籤
         </button>
 
         {/* 標籤列表 - 完全按照 LibreTV 的渲染邏輯 */}
@@ -201,10 +195,10 @@ const DoubanTagSystem: React.FC<DoubanTagSystemProps> = ({ type, specificCategor
             onClick={() => handleTagClick(tag)}
             className={`py-1.5 px-3.5 rounded text-sm font-medium transition-all duration-300 border ${
               tag === currentTag
-                ? 'bg-pink-600 text-white shadow-md border-white'
-                : 'bg-gray-800 text-gray-300 hover:bg-pink-700 hover:text-white border-gray-600 hover:border-white'
+                ? 'bg-pink-600 border-pink-600 text-white'
+                : 'border-gray-600 bg-gray-700 text-gray-300 hover:bg-gray-600'
             }`}
-            title={`豆瓣分類: ${getCategoryKeyCallback()} | 標籤: ${tag}`}
+            title={`搜尋關鍵字: ${tag}`}
           >
             {tag}
           </button>
@@ -213,25 +207,26 @@ const DoubanTagSystem: React.FC<DoubanTagSystemProps> = ({ type, specificCategor
 
       {/* 標籤管理模態框 - 完全按照 LibreTV 的設計 */}
       {showManageModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
-          <div className="bg-gray-900 rounded-lg p-6 max-w-md w-full max-h-[90vh] overflow-y-auto relative">
-            <button
-              onClick={() => setShowManageModal(false)}
-              className="absolute top-4 right-4 text-gray-400 hover:text-white text-xl"
-            >
-              ×
-            </button>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-gray-800 rounded-lg p-6 w-full max-w-2xl mx-4 max-h-[80vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-bold text-white">
+                自訂標籤管理 - {specificCategory || (type === 'movie' ? '電影' : '電視劇')}
+              </h3>
+              <button
+                onClick={() => setShowManageModal(false)}
+                className="text-gray-400 hover:text-white text-2xl"
+              >
+                ×
+              </button>
+            </div>
 
-            <h3 className="text-xl font-bold text-white mb-4">
-              豆瓣標籤管理 - {specificCategory || (type === 'movie' ? '電影' : '電視劇')}
-            </h3>
-
-            <div className="mb-4">
-              <div className="flex justify-between items-center mb-2">
-                <h4 className="text-lg font-medium text-gray-300">豆瓣標籤列表</h4>
+            <div className="mb-6">
+              <div className="flex justify-between items-center mb-3">
+                <h4 className="text-lg font-medium text-gray-300">自訂標籤列表</h4>
                 <button
                   onClick={resetTagsToDefault}
-                  className="text-xs px-2 py-1 bg-gray-700 hover:bg-gray-600 text-white rounded"
+                  className="text-sm bg-gray-600 hover:bg-gray-500 text-white px-3 py-1 rounded"
                 >
                   恢復默認標籤
                 </button>
@@ -245,13 +240,13 @@ const DoubanTagSystem: React.FC<DoubanTagSystemProps> = ({ type, specificCategor
                     return (
                       <div
                         key={tag}
-                        className="bg-gray-800 text-gray-300 py-1.5 px-3 rounded text-sm font-medium flex justify-between items-center group"
+                        className="flex items-center justify-between bg-gray-700 rounded px-3 py-2 group"
                       >
                         <span>{tag}</span>
                         {canDelete ? (
                           <button
                             onClick={() => deleteTag(tag)}
-                            className="text-gray-500 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                            className="delete-tag-btn text-gray-500 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
                           >
                             ✕
                           </button>
@@ -273,7 +268,7 @@ const DoubanTagSystem: React.FC<DoubanTagSystemProps> = ({ type, specificCategor
 
             {/* 添加新標籤 */}
             <div className="border-t border-gray-700 pt-4">
-              <h4 className="text-lg font-medium text-gray-300 mb-3">添加新豆瓣標籤</h4>
+              <h4 className="text-lg font-medium text-gray-300 mb-3">添加新自訂標籤</h4>
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
@@ -285,7 +280,7 @@ const DoubanTagSystem: React.FC<DoubanTagSystemProps> = ({ type, specificCategor
                   type="text"
                   value={newTag}
                   onChange={(e) => setNewTag(e.target.value)}
-                  placeholder="輸入豆瓣分類名稱（如：恐怖）..."
+                  placeholder="輸入搜尋關鍵字（如：柯南）..."
                   className="flex-1 bg-gray-800 text-white border border-gray-700 rounded px-3 py-2 focus:outline-none focus:border-pink-500"
                 />
                 <button
@@ -296,7 +291,7 @@ const DoubanTagSystem: React.FC<DoubanTagSystemProps> = ({ type, specificCategor
                 </button>
               </form>
               <p className="text-xs text-gray-500 mt-2">
-                提示：點擊標籤將顯示該豆瓣分類的影片
+                提示：點擊標籤將搜尋包含該關鍵字的影片標題
               </p>
             </div>
           </div>
@@ -306,4 +301,4 @@ const DoubanTagSystem: React.FC<DoubanTagSystemProps> = ({ type, specificCategor
   );
 };
 
-export default DoubanTagSystem;
+export default CustomTagSystem;
