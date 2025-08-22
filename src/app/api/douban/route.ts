@@ -297,7 +297,7 @@ function handleTop250(pageStart: number) {
 
       // 通过正则同时捕获影片 id、标题、封面以及评分
       const moviePattern =
-        /<div class="item">[\\s\\S]*?<a[^>]+href="https?:\\/\\/movie\\.douban\\.com\\/subject\\/(\\d+)\\/"[\\s\\S]*?<img[^>]+alt="([^"]+)"[^>]*src="([^"]+)"[\\s\\S]*?<span class="rating_num"[^>]*>([^<]*)<\\/span>[\\s\\S]*?<\\/div>/g;
+        /<div class="item">[\s\S]*?<a[^>]+href="https?:\/\/movie\.douban\.com\/subject\/(\d+)\/"[\s\S]*?<img[^>]+alt="([^"]+)"[^>]*src="([^"]+)"[\s\S]*?<span class="rating_num"[^>]*>([^<]*)<\/span>[\s\S]*?<\/div>/g;
       const movies: DoubanItem[] = [];
       let match;
 
@@ -318,14 +318,14 @@ function handleTop250(pageStart: number) {
         });
       }
 
-      const top250Result: DoubanResult = {
+      const apiResponse: DoubanResult = {
         code: 200,
         message: '获取成功',
         list: movies,
       };
 
       const cacheTime = getCacheTime();
-      return NextResponse.json(top250Result, {
+      return NextResponse.json(apiResponse, {
         headers: {
           'Cache-Control': `public, max-age=${cacheTime}`,
         },
