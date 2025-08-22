@@ -2,20 +2,14 @@
 
 import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { DoubanItem, DoubanResult } from '@/lib/types';
 
 import DoubanCardSkeleton from '@/components/DoubanCardSkeleton';
-import DoubanFilters from '@/components/DoubanFilters';
 import DoubanTagSystem from '@/components/DoubanTagSystem';
-import CustomTagSystem from '@/components/CustomTagSystem';
 import PageLayout from '@/components/PageLayout';
 import VideoCard from '@/components/VideoCard';
-
-interface FilterOptions {
-  sort: string;
-}
 
 function DoubanPageClient() {
   const searchParams = useSearchParams();
@@ -25,70 +19,14 @@ function DoubanPageClient() {
   const [currentPage, setCurrentPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [filters, setFilters] = useState<FilterOptions>({
-    sort: 'recommend',
-  });
-  // 移除舊的標籤狀態 - 現在由 DoubanTagSystem 獨立管理
   const observerRef = useRef<IntersectionObserver | null>(null);
   const loadingRef = useRef<HTMLDivElement>(null);
 
   const type = searchParams.get('type');
   const tag = searchParams.get('tag');
-  const title = searchParams.get('title'); // 獲取分類標題
 
   // 生成骨架屏数据
   const skeletonData = Array.from({ length: 25 }, (_, index) => index);
-
-  // 移除舊的標籤管理邏輯 - 現在由 DoubanTagSystem 獨立處理
-
-  // 移除舊的標籤變更處理 - 現在由 DoubanTagSystem 獨立處理
-
-  // 處理標籤切換
-  const handleTagChange = (newTag: string) => {
-    // 更新 URL 參數，保持當前的分類上下文
-    const params = new URLSearchParams(searchParams);
-    params.set('tag', newTag);
-    
-    // 確保保持正確的 type 參數
-    if (type) {
-      params.set('type', type);
-    }
-    
-    // 如果是特定分類（如日漫、美劇等），保持 title 參數
-    const currentTitle = searchParams.get('title');
-    if (currentTitle) {
-      params.set('title', currentTitle);
-    }
-    
-    const newUrl = `${window.location.pathname}?${params}`;
-    window.history.pushState({}, '', newUrl);
-    
-    // 強制重新加載頁面以確保數據更新
-    window.location.reload();
-  };
-
-  // 處理篩選器變更
-  const handleFiltersChange = (newFilters: FilterOptions) => {
-    setFilters(newFilters);
-  };
-
-  // 構建查詢參數
-  const buildQueryParams = useCallback((pageStart = 0) => {
-    const params = new URLSearchParams({
-      type: type || '',
-      tag: tag || '',
-      pageSize: '25',
-      pageStart: pageStart.toString(),
-      sort: filters.sort,
-    });
-
-    // 如果有分類標題，添加到查詢參數
-    if (title) {
-      params.set('title', title);
-    }
-
-    return params.toString();
-  }, [type, tag, title, filters]);
 
   useEffect(() => {
     if (!type || !tag) {
@@ -108,8 +46,9 @@ function DoubanPageClient() {
     const loadInitialData = async () => {
       try {
         setLoading(true);
-        const queryString = buildQueryParams(0);
-        const response = await fetch(`/api/douban?${queryString}`);
+        const response = await fetch(
+          `/api/douban?type=${type}&tag=${tag}&pageSize=25&pageStart=0`
+        );
 
         if (!response.ok) {
           throw new Error('获取豆瓣数据失败');
@@ -131,7 +70,7 @@ function DoubanPageClient() {
     };
 
     loadInitialData();
-  }, [type, tag, filters, buildQueryParams]);
+  }, [type, tag]);
 
   // 单独处理 currentPage 变化（加载更多）
   useEffect(() => {
@@ -139,8 +78,12 @@ function DoubanPageClient() {
       const fetchMoreData = async () => {
         try {
           setIsLoadingMore(true);
-          const queryString = buildQueryParams(currentPage * 25);
-          const response = await fetch(`/api/douban?${queryString}`);
+
+          const response = await fetch(
+            `/api/douban?type=${type}&tag=${tag}&pageSize=25&pageStart=${
+              currentPage * 25
+            }`
+          );
 
           if (!response.ok) {
             throw new Error('获取豆瓣数据失败');
@@ -163,7 +106,7 @@ function DoubanPageClient() {
 
       fetchMoreData();
     }
-  }, [currentPage, type, tag, buildQueryParams]);
+  }, [currentPage, type, tag]);
 
   // 设置滚动监听
   useEffect(() => {
@@ -235,20 +178,8 @@ function DoubanPageClient() {
           <p className='text-gray-600 dark:text-gray-400'>来自豆瓣的精选内容</p>
         </div>
 
-        {/* 豆瓣標籤系統 - 原始分類功能 */}
-        {type && <DoubanTagSystem type={type as 'movie' | 'tv'} specificCategory={title || tag || undefined} />}
-        
-        {/* 自訂標籤系統 - 搜尋功能 */}
-        {type && <CustomTagSystem type={type as 'movie' | 'tv'} specificCategory={title || tag || undefined} />}
-        
-
-        {/* 排序器 */}
-        {type && tag && (
-          <DoubanFilters
-            type={type}
-            onFiltersChange={handleFiltersChange}
-          />
-        )}
+        {/* 豆瓣标签系统 */}
+        {type && <DoubanTagSystem type={type as 'movie' | 'tv'} />}
 
         {/* 内容展示区域 */}
         <div className='max-w-[95%] mx-auto mt-8 overflow-visible'>
@@ -319,8 +250,6 @@ function DoubanPageClient() {
             </>
           )}
         </div>
-
-        {/* 移除舊的 TagManager - 現在由 DoubanTagSystem 獨立處理 */}
       </div>
     </PageLayout>
   );
