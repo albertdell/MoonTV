@@ -8,6 +8,7 @@ import { DoubanItem, DoubanResult } from '@/lib/types';
 
 import DoubanCardSkeleton from '@/components/DoubanCardSkeleton';
 import DoubanTagSystem from '@/components/DoubanTagSystem';
+import CustomTagSystem from '@/components/CustomTagSystem'; // 引入自訂標籤系統
 import PageLayout from '@/components/PageLayout';
 import VideoCard from '@/components/VideoCard';
 
@@ -24,6 +25,7 @@ function DoubanPageClient() {
 
   const type = searchParams.get('type');
   const tag = searchParams.get('tag');
+  const title = searchParams.get('title'); // 獲取分類標題
 
   // 生成骨架屏数据
   const skeletonData = Array.from({ length: 25 }, (_, index) => index);
@@ -180,6 +182,9 @@ function DoubanPageClient() {
 
         {/* 豆瓣标签系统 */}
         {type && <DoubanTagSystem type={type as 'movie' | 'tv'} />}
+        
+        {/* 自訂標籤系統 - 搜尋功能 */}
+        {type && <CustomTagSystem type={type as 'movie' | 'tv'} specificCategory={title || tag || undefined} />}
 
         {/* 内容展示区域 */}
         <div className='max-w-[95%] mx-auto mt-8 overflow-visible'>
