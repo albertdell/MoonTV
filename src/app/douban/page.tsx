@@ -130,7 +130,7 @@ function DoubanPageClient() {
     };
 
     loadInitialData();
-  }, [type, tag, filters.sort]); // 修改依赖项数组，明确依赖 filters.sort 而不是整个 filters 对象和 buildQueryParams 函数
+  }, [type, tag, filters.sort]); // 明确依赖 filters.sort 而不是整个 filters 对象
 
   // 单独处理 currentPage 变化（加载更多）
   useEffect(() => {
