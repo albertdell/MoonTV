@@ -79,10 +79,27 @@ const CustomTagSystem: React.FC<CustomTagSystemProps> = ({ type, specificCategor
   // 處理標籤點擊 - 統一使用搜尋功能（自訂標籤的核心功能）
   const handleTagClick = (tag: string) => {
     if (tag !== currentTag) {
-      // 直接使用標籤名稱作為搜尋關鍵字，不加分類前綴
-      // 因為第三方搜尋API用純關鍵字搜尋效果更好
-      const searchQuery = tag;
+      // 構造搜尋查詢，包含分類資訊和標籤名稱
+      let searchQuery = tag;
       
+      // 如果有 specificCategory，將其添加到搜尋查詢中
+      if (specificCategory && specificCategory !== '热门') {
+        // 對於日漫等分類，使用分類名稱作為搜尋的一部分
+        if (specificCategory === '日漫') {
+          searchQuery = `${tag} 日本动画`;
+        } else if (specificCategory === '美剧' || specificCategory === '韩剧' || specificCategory === '日剧') {
+          searchQuery = `${tag} ${specificCategory}`;
+        } else {
+          searchQuery = `${tag} ${specificCategory}`;
+        }
+      } 
+      // 如果沒有 specificCategory 但有 type 為 tv，使用當前標籤作為分類
+      else if (type === 'tv' && currentTag !== '热门') {
+        // 注意：這可能不夠精確，因為 currentTag 可能不是分類名稱
+        // 但這是我們能做的最好的了
+        searchQuery = `${tag} ${currentTag}`;
+      }
+
       // 跳轉到搜尋頁面
       router.push(`/search?q=${encodeURIComponent(searchQuery)}`);
     }

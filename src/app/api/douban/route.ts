@@ -128,28 +128,20 @@ export async function GET(request: Request) {
     '冷门佳片': '冷门佳片'
   };
 
-  // 優先級選擇：title > tag，簡化邏輯
+  // 優先級選擇：tag > title，簡化邏輯
   let finalTag = tag;
   
-  // 如果有title參數且在映射表中，優先使用title
-  if (title && tagMapping[title]) {
+  // 如果tag不在映射表中，但title在映射表中，則使用title的映射值
+  // 這主要是為了處理特定分類的預設標籤（如日漫、美劇等的"热门"標籤）
+  if (!tagMapping[tag] && title && tagMapping[title]) {
     finalTag = tagMapping[title];
-  } else if (tagMapping[tag]) {
+  } 
+  // 如果tag在映射表中，直接使用tag的映射值
+  else if (tagMapping[tag]) {
     finalTag = tagMapping[tag];
   }
-  
-  
-  // 優先級：類型 > 地區 > 年份 > 映射標籤
-  if (genres && genres !== '') {
-    const genreList = genres.split(',').filter(g => g.trim() !== '');
-    if (genreList.length > 0) {
-      finalTag = tagMapping[genreList[0]] || genreList[0];
-    }
-  } else if (region && region !== '') {
-    finalTag = tagMapping[region] || region;
-  } else if (year && year !== '') {
-    finalTag = year; // 年份不需要映射
-  }
+  // 如果tag和title都不在映射表中，直接使用tag的原始值
+  // 這適用於各分類下的具體標籤（如"校园"、"喜剧"等）
 
   const target = `https://movie.douban.com/j/search_subjects?type=${type}&tag=${encodeURIComponent(finalTag)}&sort=${sort}&page_limit=${pageSize}&page_start=${pageStart}`;
 
