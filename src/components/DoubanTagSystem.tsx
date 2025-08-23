@@ -129,15 +129,52 @@ const DoubanTagSystem: React.FC<DoubanTagSystemProps> = ({ type, specificCategor
 
   // 處理標籤點擊 - 使用豆瓣分類功能（原始功能）
   const handleTagClick = (tag: string) => {
-    if (tag !== currentTag) {
-      // 使用豆瓣分類 API - 恢復原始的分類功能
-      const params = new URLSearchParams(searchParams);
-      params.set('tag', tag);
-      
-      // 保持在豆瓣頁面，只更新標籤參數
-      const newUrl = `/douban?${params.toString()}`;
-      router.push(newUrl);
+    // 構造新的URL參數
+    const params = new URLSearchParams();
+    
+    // 保持type參數
+    if (type) {
+      params.set('type', type);
     }
+    
+    // 設置tag參數
+    // 如果是默認分類（如"热门"、"美剧"等），直接使用tag
+    // 如果是具體分類下的標籤（如"校园"、"喜剧"等），構造組合標籤
+    if (specificCategory && specificCategory !== tag && tag !== '热门') {
+      // 對於特定分類，構造組合標籤
+      // 例如：specificCategory="日漫", tag="校园" => finalTag="日本动画 校园"
+      let categoryTag = specificCategory;
+      // 映射特定分類名稱到豆瓣API支持的標籤
+      const categoryMapping: { [key: string]: string } = {
+        '日漫': '日本动画',
+        '韩剧': '韩剧',
+        '日剧': '日剧',
+        '美剧': '美剧',
+        '英剧': '英剧',
+        '港剧': '港剧',
+        '国产剧': '国产剧',
+        '综艺': '综艺',
+        '纪录片': '纪录片'
+      };
+      
+      if (categoryMapping[specificCategory]) {
+        categoryTag = categoryMapping[specificCategory];
+      }
+      
+      params.set('tag', `${categoryTag} ${tag}`);
+    } else {
+      // 對於默認分類或熱門標籤，直接使用tag
+      params.set('tag', tag);
+    }
+    
+    // 保持title參數
+    if (specificCategory) {
+      params.set('title', specificCategory);
+    }
+    
+    // 保持在豆瓣頁面，只更新標籤參數
+    const newUrl = `/douban?${params.toString()}`;
+    router.push(newUrl);
   };
 
   // 添加標籤 - 恢復原本的標籤功能

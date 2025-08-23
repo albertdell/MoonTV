@@ -128,20 +128,25 @@ export async function GET(request: Request) {
     '冷门佳片': '冷门佳片'
   };
 
-  // 優先級選擇：tag > title，簡化邏輯
+  // 處理組合標籤
+  // 組合標籤格式："分类 标签"，例如："日本动画 校园"
   let finalTag = tag;
   
-  // 如果tag不在映射表中，但title在映射表中，則使用title的映射值
-  // 這主要是為了處理特定分類的預設標籤（如日漫、美劇等的"热门"標籤）
-  if (!tagMapping[tag] && title && tagMapping[title]) {
-    finalTag = tagMapping[title];
-  } 
-  // 如果tag在映射表中，直接使用tag的映射值
-  else if (tagMapping[tag]) {
-    finalTag = tagMapping[tag];
+  // 檢查是否為組合標籤
+  if (tag.includes(' ')) {
+    // 對於組合標籤，直接使用，不需要映射
+    // 豆瓣API應該能夠處理這種格式的查詢
+    finalTag = tag;
+  } else {
+    // 對於單一標籤，使用原有的映射邏輯
+    // 優先級：tag > title
+    if (tagMapping[tag]) {
+      finalTag = tagMapping[tag];
+    } else if (title && tagMapping[title]) {
+      finalTag = tagMapping[title];
+    }
+    // 如果tag和title都不在映射表中，直接使用tag的原始值
   }
-  // 如果tag和title都不在映射表中，直接使用tag的原始值
-  // 這適用於各分類下的具體標籤（如"校园"、"喜剧"等）
 
   const target = `https://movie.douban.com/j/search_subjects?type=${type}&tag=${encodeURIComponent(finalTag)}&sort=${sort}&page_limit=${pageSize}&page_start=${pageStart}`;
 
