@@ -146,7 +146,7 @@ const DoubanTagSystem: React.FC<DoubanTagSystemProps> = ({ type, specificCategor
     const safeTag = tag
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
-      .replace(/\"/g, '&quot;')
+      .replace(/"/g, '&quot;')
       .trim();
 
     if (!safeTag) return;

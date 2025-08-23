@@ -243,10 +243,19 @@ function DoubanPageClient() {
 
         {/* 排序器 */}
         {type && tag && (
-          <DoubanFilters
-            type={type}
-            onFiltersChange={handleFiltersChange}
-          />
+          <div className="mb-4">
+            <label htmlFor="sort" className="mr-2 text-gray-700 dark:text-gray-300">排序:</label>
+            <select 
+              id="sort"
+              value={filters.sort}
+              onChange={(e) => handleFiltersChange({ sort: e.target.value })}
+              className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-1 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="recommend">推荐</option>
+              <option value="time">时间</option>
+              <option value="rank">评分</option>
+            </select>
+          </div>
         )}
 
         {/* 内容展示区域 */}
