@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import React, { useCallback, useEffect, useState } from 'react';
 
 interface CustomTagSystemProps {
   type: 'movie' | 'tv';
@@ -14,7 +14,7 @@ const getCategoryTags = (type: 'movie' | 'tv', category?: string) => {
   return ['热门'];
 };
 
-const CustomTagSystem: React.FC<CustomTagSystemProps> = ({ type, specificCategory }) => {
+const CustomTagSystem: React.FC<CustomTagSystemProps> = ({ type: _type, specificCategory: _specificCategory }) => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const currentTag = searchParams.get('tag') || '热门';
@@ -72,7 +72,9 @@ const CustomTagSystem: React.FC<CustomTagSystemProps> = ({ type, specificCategor
       localStorage.setItem(storageKey, JSON.stringify(newTags));
       setTags(newTags);
     } catch (error) {
-      console.error('保存標籤失敗:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('保存標籤失敗:', error);
+      }
     }
   };
 

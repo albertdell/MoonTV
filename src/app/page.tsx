@@ -110,24 +110,32 @@ function HomeClient() {
               
               // 如果響應不成功或沒有數據，進行重試
               if (retryCount < maxRetries) {
-                console.warn(`${section.title} 第 ${retryCount + 1} 次嘗試失敗，準備重試...`);
+                if (process.env.NODE_ENV === 'development') {
+                  console.warn(`${section.title} 第 ${retryCount + 1} 次嘗試失敗，準備重試...`);
+                }
                 retryCount++;
                 await new Promise(resolve => setTimeout(resolve, 1000 * retryCount)); // 遞增延遲
                 continue;
               }
               
-              console.error(`獲取 ${section.title} 數據失敗:`, response.status);
+              if (process.env.NODE_ENV === 'development') {
+                console.error(`獲取 ${section.title} 數據失敗:`, response.status);
+              }
               return { ...section, loading: false, data: [] };
               
             } catch (error) {
               if (retryCount < maxRetries) {
-                console.warn(`${section.title} 第 ${retryCount + 1} 次嘗試錯誤:`, error, '準備重試...');
+                if (process.env.NODE_ENV === 'development') {
+                  console.warn(`${section.title} 第 ${retryCount + 1} 次嘗試錯誤:`, error, '準備重試...');
+                }
                 retryCount++;
                 await new Promise(resolve => setTimeout(resolve, 1000 * retryCount)); // 遞增延遲
                 continue;
               }
               
-              console.error(`獲取 ${section.title} 數據錯誤:`, error);
+              if (process.env.NODE_ENV === 'development') {
+                console.error(`獲取 ${section.title} 數據錯誤:`, error);
+              }
               return { ...section, loading: false, data: [] };
             }
           }

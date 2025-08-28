@@ -30,7 +30,7 @@ async function fetchWithProxy(url: string): Promise<DoubanApiResponse> {
         'Accept': 'application/json, text/plain, */*',
         'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
         'Cache-Control': 'no-cache',
-      }
+      } as Record<string, string>
     },
     // 方案2: allorigins (通常最穩定)
     {
@@ -42,7 +42,7 @@ async function fetchWithProxy(url: string): Promise<DoubanApiResponse> {
       },
       headers: {
         'Accept': 'application/json',
-      }
+      } as Record<string, string>
     },
     // 方案3: 備用代理
     {
@@ -51,7 +51,7 @@ async function fetchWithProxy(url: string): Promise<DoubanApiResponse> {
       transform: (data: any) => data,
       headers: {
         'Accept': 'application/json',
-      }
+      } as Record<string, string>
     }
   ];
 
@@ -59,7 +59,9 @@ async function fetchWithProxy(url: string): Promise<DoubanApiResponse> {
 
   for (const proxy of proxyServices) {
     try {
-      console.log(`嘗試代理服務: ${proxy.name}`);
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`嘗試代理服務: ${proxy.name}`);
+      }
       
       const response = await fetch(proxy.url, {
         signal: controller.signal,
@@ -79,12 +81,16 @@ async function fetchWithProxy(url: string): Promise<DoubanApiResponse> {
         throw new Error('返回數據格式不正確');
       }
 
-      console.log(`代理服務 ${proxy.name} 成功，獲取 ${transformedData.subjects.length} 項數據`);
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`代理服務 ${proxy.name} 成功，獲取 ${transformedData.subjects.length} 項數據`);
+      }
       clearTimeout(timeoutId);
       return transformedData;
 
     } catch (error) {
-      console.error(`代理服務 ${proxy.name} 失敗:`, error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error(`代理服務 ${proxy.name} 失敗:`, error);
+      }
       lastError = error instanceof Error ? error : new Error(String(error));
       continue;
     }
@@ -107,9 +113,9 @@ export async function GET(request: Request) {
   const pageStart = parseInt(searchParams.get('pageStart') || '0');
   
   // 新增篩選參數
-  const year = searchParams.get('year');
-  const region = searchParams.get('region');
-  const genres = searchParams.get('genres');
+  const _year = searchParams.get('year');
+  const _region = searchParams.get('region');
+  const _genres = searchParams.get('genres');
   const sort = searchParams.get('sort') || 'recommend';
 
   // 验证参数
@@ -212,8 +218,10 @@ export async function GET(request: Request) {
   const target = `https://movie.douban.com/j/search_subjects?type=${type}&tag=${encodeURIComponent(finalTag)}&sort=${sort}&page_limit=${pageSize}&page_start=${pageStart}`;
 
   try {
-    console.log('請求豆瓣 API:', target);
-    console.log('標籤映射:', { original: tag, final: finalTag, title });
+    if (process.env.NODE_ENV === 'development') {
+      console.log('請求豆瓣 API:', target);
+      console.log('標籤映射:', { original: tag, final: finalTag, title });
+    }
 
     const doubanData = await fetchWithProxy(target);
 
@@ -232,7 +240,9 @@ export async function GET(request: Request) {
       list: list,
     };
 
-    console.log(`成功獲取 ${list.length} 項數據`);
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`成功獲取 ${list.length} 項數據`);
+    }
 
     const cacheTime = getCacheTime();
     return NextResponse.json(result, {
@@ -243,9 +253,11 @@ export async function GET(request: Request) {
       },
     });
   } catch (error) {
-    console.error('豆瓣 API 錯誤:', error);
-    console.error('請求 URL:', target);
-    console.error('標籤信息:', { originalTag: tag, finalTag, title });
+    if (process.env.NODE_ENV === 'development') {
+      console.error('豆瓣 API 錯誤:', error);
+      console.error('請求 URL:', target);
+      console.error('標籤信息:', { originalTag: tag, finalTag, title });
+    }
     
     // 返回詳細錯誤信息但不中斷用戶體驗
     return NextResponse.json(

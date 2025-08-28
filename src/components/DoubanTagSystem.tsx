@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import React, { useCallback, useEffect, useState } from 'react';
 
 interface DoubanTagSystemProps {
   type: 'movie' | 'tv';
@@ -58,7 +58,9 @@ const loadUserTags = (type: 'movie' | 'tv', category?: string): string[] => {
       return getDefaultTags(type, category);
     }
   } catch (e) {
-    console.error('加載用戶標籤失敗:', e);
+    if (process.env.NODE_ENV === 'development') {
+      console.error('加載用戶標籤失敗:', e);
+    }
     return getDefaultTags(type, category);
   }
 };
@@ -69,7 +71,9 @@ const saveUserTags = (tags: string[], type: 'movie' | 'tv', category?: string) =
     const storageKey = `moonTV_douban_tags_${category || type}`;
     localStorage.setItem(storageKey, JSON.stringify(tags));
   } catch (e) {
-    console.error('保存用戶標籤失敗:', e);
+    if (process.env.NODE_ENV === 'development') {
+      console.error('保存用戶標籤失敗:', e);
+    }
   }
 };
 
@@ -117,7 +121,9 @@ const DoubanTagSystem: React.FC<DoubanTagSystemProps> = ({ type, specificCategor
       saveUserTags(newTags, type, specificCategory);
       setTags(newTags);
     } catch (error) {
-      console.error('保存標籤失敗:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('保存標籤失敗:', error);
+      }
     }
   };
 

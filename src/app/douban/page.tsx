@@ -1,8 +1,7 @@
 'use client';
 
 import { useSearchParams } from 'next/navigation';
-import { Suspense } from 'react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 
 import { DoubanItem, DoubanResult } from '@/lib/types';
 
@@ -42,8 +41,8 @@ function DoubanPageClient() {
 
   // 移除舊的標籤變更處理 - 現在由 DoubanTagSystem 獨立處理
 
-  // 處理標籤切換 - 移除強制刷新
-  const handleTagChange = (newTag: string) => {
+  // 處理標籤切換 - 移除強制刷新 (保留供未來使用)
+  const _handleTagChange = (newTag: string) => {
     // 更新 URL 參數，保持當前的分類上下文
     const params = new URLSearchParams(searchParams);
     params.set('tag', newTag);
@@ -136,7 +135,7 @@ function DoubanPageClient() {
     };
 
     loadInitialData();
-  }, [type, tag, filters.sort]); // 明确依赖 filters.sort 而不是整个 filters 对象
+  }, [type, tag, filters.sort, buildQueryParams]); // 添加 buildQueryParams 依賴
 
   // 单独处理 currentPage 变化（加载更多）
   useEffect(() => {
