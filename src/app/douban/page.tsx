@@ -42,7 +42,7 @@ function DoubanPageClient() {
 
   // 移除舊的標籤變更處理 - 現在由 DoubanTagSystem 獨立處理
 
-  // 處理標籤切換
+  // 處理標籤切換 - 移除強制刷新
   const handleTagChange = (newTag: string) => {
     // 更新 URL 參數，保持當前的分類上下文
     const params = new URLSearchParams(searchParams);
@@ -60,10 +60,16 @@ function DoubanPageClient() {
     }
     
     const newUrl = `${window.location.pathname}?${params}`;
+    
+    // 使用 Next.js 路由而不是強制刷新
     window.history.pushState({}, '', newUrl);
     
-    // 強制重新加載頁面以確保數據更新
-    window.location.reload();
+    // 觸發數據重新加載
+    setDoubanData([]);
+    setCurrentPage(0);
+    setHasMore(true);
+    setError(null);
+    setLoading(true);
   };
 
   // 處理篩選器變更

@@ -127,7 +127,7 @@ const DoubanTagSystem: React.FC<DoubanTagSystemProps> = ({ type, specificCategor
     saveTags(defaultTags);
   };
 
-  // 處理標籤點擊 - 使用豆瓣分類功能（原始功能）
+  // 處理標籤點擊 - 改善的導航邏輯
   const handleTagClick = (tag: string) => {
     // 使用豆瓣分類 API - 恢復原始的分類功能
     const params = new URLSearchParams(searchParams);
@@ -135,6 +135,8 @@ const DoubanTagSystem: React.FC<DoubanTagSystemProps> = ({ type, specificCategor
     
     // 保持在豆瓣頁面，只更新標籤參數
     const newUrl = `/douban?${params.toString()}`;
+    
+    // 使用 router.push 而不是強制刷新
     router.push(newUrl);
   };
 

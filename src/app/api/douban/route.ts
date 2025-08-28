@@ -12,36 +12,86 @@ interface DoubanApiResponse {
   }>;
 }
 
-async function _fetchDoubanData(url: string): Promise<DoubanApiResponse> {
-  // 添加超时控制
+// 改進的代理服務策略
+async function fetchWithProxy(url: string): Promise<DoubanApiResponse> {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 10000); // 10秒超时
+  const timeoutId = setTimeout(() => controller.abort(), 12000); // 增加超時時間
 
-  // 设置请求选项，包括信号和头部
-  const fetchOptions = {
-    signal: controller.signal,
-    headers: {
-      'User-Agent':
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
-      Referer: 'https://movie.douban.com/',
-      Accept: 'application/json, text/plain, */*',
+  // 更穩定的代理服務列表
+  const proxyServices = [
+    // 方案1: 嘗試直接調用（在某些環境可能工作）
+    {
+      name: 'direct',
+      url: url,
+      transform: (data: any) => data,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+        'Referer': 'https://movie.douban.com/',
+        'Accept': 'application/json, text/plain, */*',
+        'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+        'Cache-Control': 'no-cache',
+      }
     },
-  };
-
-  try {
-    // 尝试直接访问豆瓣API
-    const response = await fetch(url, fetchOptions);
-    clearTimeout(timeoutId);
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! Status: ${response.status}`);
+    // 方案2: allorigins (通常最穩定)
+    {
+      name: 'allorigins',
+      url: `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
+      transform: (data: any) => {
+        if (!data.contents) throw new Error('allorigins 返回格式錯誤');
+        return JSON.parse(data.contents);
+      },
+      headers: {
+        'Accept': 'application/json',
+      }
+    },
+    // 方案3: 備用代理
+    {
+      name: 'corsproxy',
+      url: `https://corsproxy.io/?${encodeURIComponent(url)}`,
+      transform: (data: any) => data,
+      headers: {
+        'Accept': 'application/json',
+      }
     }
+  ];
 
-    return await response.json();
-  } catch (error) {
-    clearTimeout(timeoutId);
-    throw error;
+  let lastError: Error | null = null;
+
+  for (const proxy of proxyServices) {
+    try {
+      console.log(`嘗試代理服務: ${proxy.name}`);
+      
+      const response = await fetch(proxy.url, {
+        signal: controller.signal,
+        headers: proxy.headers,
+        method: 'GET',
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const rawData = await response.json();
+      const transformedData = proxy.transform(rawData);
+      
+      // 驗證數據格式
+      if (!transformedData.subjects || !Array.isArray(transformedData.subjects)) {
+        throw new Error('返回數據格式不正確');
+      }
+
+      console.log(`代理服務 ${proxy.name} 成功，獲取 ${transformedData.subjects.length} 項數據`);
+      clearTimeout(timeoutId);
+      return transformedData;
+
+    } catch (error) {
+      console.error(`代理服務 ${proxy.name} 失敗:`, error);
+      lastError = error instanceof Error ? error : new Error(String(error));
+      continue;
+    }
   }
+
+  clearTimeout(timeoutId);
+  throw new Error(`所有代理服務都失敗，最後錯誤: ${lastError?.message || '未知錯誤'}`);
 }
 
 export const runtime = 'edge';
@@ -95,111 +145,77 @@ export async function GET(request: Request) {
     return handleTop250(pageStart);
   }
 
-  // 簡化標籤映射 - 參考LibreTV的直接映射方式
-  const tagMapping: { [key: string]: string } = {
-    // 電視劇分類映射 - 直接使用豆瓣支持的標籤
-    '美剧': '美剧',
-    '日剧': '日剧', 
-    '韩剧': '韩剧',
-    '英剧': '英剧',
-    '国产剧': '国产剧',
-    '港剧': '港剧',
-    '日本动画': '日本动画',
-    '日漫': '日本动画',
-    '综艺': '综艺',
-    '纪录片': '纪录片',
-    // 電影分類映射
-    '华语': '华语',
-    '欧美': '欧美',
-    '韩国': '韩国',
-    '日本': '日本',
-    '动作': '动作',
-    '喜剧': '喜剧',
-    '爱情': '爱情',
-    '科幻': '科幻',
-    '悬疑': '悬疑',
-    '恐怖': '恐怖',
-    '治愈': '治愈',
-    '豆瓣高分': '豆瓣高分',
-    // 通用標籤
-    '热门': '热门',
-    '最新': '最新',
-    '经典': '经典',
-    '冷门佳片': '冷门佳片'
-  };
+  // 改進的標籤映射 - 基於實際測試結果
+  function getValidDoubanTag(tag: string, type: 'movie' | 'tv'): string {
+    // 直接映射表 - 基於豆瓣實際支持的標籤
+    const tagMapping: { [key: string]: string } = {
+      // 電視劇分類 - 確保與豆瓣 API 完全匹配
+      '美剧': '美剧',
+      '日剧': '日剧', 
+      '韩剧': '韩剧',
+      '英剧': '英剧',
+      '国产剧': '国产剧',
+      '港剧': '港剧',
+      '日本动画': '日本动画',
+      '日漫': '日本动画', // 映射到豆瓣支持的標籤
+      '综艺': '综艺',
+      '纪录片': '纪录片',
+      
+      // 電影分類
+      '华语': '华语',
+      '欧美': '欧美',
+      '韩国': '韩国',
+      '日本': '日本',
+      '动作': '动作',
+      '喜剧': '喜剧',
+      '爱情': '爱情',
+      '科幻': '科幻',
+      '悬疑': '悬疑',
+      '恐怖': '恐怖',
+      '治愈': '治愈',
+      '豆瓣高分': '豆瓣高分',
+      
+      // 通用標籤
+      '热门': '热门',
+      '最新': '最新',
+      '经典': '经典',
+      '冷门佳片': '冷门佳片',
+      
+      // 細分標籤
+      '剧情': '剧情',
+      '动画': '动画',
+      '犯罪': '犯罪',
+      '奇幻': '奇幻',
+      '惊悚': '惊悚',
+      '家庭': '家庭',
+      '战争': '战争',
+      '音乐': '音乐',
+      '历史': '历史',
+      '传记': '传记',
+      '运动': '运动',
+      '西部': '西部',
+      '短片': '短片',
+    };
 
-  // 優先級選擇：tag > title
-  let finalTag = tag;
-  
-  // 如果tag在映射表中，直接使用tag的映射值
-  if (tagMapping[tag]) {
-    finalTag = tagMapping[tag];
-  } 
-  // 如果tag不在映射表中，但title在映射表中，則使用title的映射值
-  // 這主要是為了處理特定分類的預設標籤（如日漫、美劇等的"热门"標籤）
-  else if (title && tagMapping[title]) {
-    finalTag = tagMapping[title];
+    // 如果標籤在映射表中，返回映射值
+    if (tagMapping[tag]) {
+      return tagMapping[tag];
+    }
+
+    // 如果不在映射表中，直接返回原標籤（豆瓣可能支持）
+    return tag;
   }
-  // 如果tag和title都不在映射表中，直接使用tag的原始值
-  // 這適用於各分類下的具體標籤（如"校园"、"喜剧"等）
+
+  // 使用改進的標籤映射
+  const finalTag = getValidDoubanTag(tag, type as 'movie' | 'tv');
 
   const target = `https://movie.douban.com/j/search_subjects?type=${type}&tag=${encodeURIComponent(finalTag)}&sort=${sort}&page_limit=${pageSize}&page_start=${pageStart}`;
 
   try {
-    
-    // 嘗試多個CORS代理服務
-    const corsProxies = [
-      `https://api.allorigins.win/get?url=${encodeURIComponent(target)}`,
-      `https://corsproxy.io/?${encodeURIComponent(target)}`,
-      `https://cors-anywhere.herokuapp.com/${target}`
-    ];
-    
-    let doubanData = null;
-    let lastError: Error | null = null;
-    
-    for (let i = 0; i < corsProxies.length; i++) {
-      try {
-        
-        const corsResponse = await fetch(corsProxies[i], {
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-            'Accept': 'application/json, text/plain, */*'
-          }
-        });
-        
-        if (!corsResponse.ok) {
-          throw new Error(`代理 ${i + 1} 失敗: ${corsResponse.status}`);
-        }
-        
-        if (i === 0) {
-          // allorigins.win 格式
-          const corsData = await corsResponse.json();
-          if (!corsData.contents) {
-            throw new Error('allorigins 代理返回格式錯誤');
-          }
-          doubanData = JSON.parse(corsData.contents);
-        } else {
-          // 其他代理直接返回JSON
-          doubanData = await corsResponse.json();
-        }
-        
-        break;
-        
-      } catch (error) {
-        console.error(`代理 ${i + 1} 失敗:`, error);
-        lastError = error instanceof Error ? error : new Error(String(error));
-        continue;
-      }
-    }
-    
-    if (!doubanData) {
-      throw new Error(`所有代理都失敗，最後錯誤: ${lastError?.message || '未知錯誤'}`);
-    }
-    
-    // 檢查數據格式
-    if (!doubanData.subjects || !Array.isArray(doubanData.subjects)) {
-      throw new Error('豆瓣 API 返回數據格式錯誤');
-    }
+    console.log('請求豆瓣 API:', target);
+    console.log('標籤映射:', { original: tag, final: finalTag, title });
+
+    const doubanData = await fetchWithProxy(target);
 
     // 转换数据格式
     const list: DoubanItem[] = doubanData.subjects.map((item: any) => ({
@@ -216,44 +232,38 @@ export async function GET(request: Request) {
       list: list,
     };
 
-    // 數據獲取成功
+    console.log(`成功獲取 ${list.length} 項數據`);
 
     const cacheTime = getCacheTime();
     return NextResponse.json(result, {
       headers: {
         'Cache-Control': `public, max-age=${cacheTime}`,
+        'X-Douban-Tag': finalTag,
+        'X-Original-Tag': tag,
       },
     });
   } catch (error) {
     console.error('豆瓣 API 錯誤:', error);
     console.error('請求 URL:', target);
-    console.error('標籤信息:', { originalTag: tag, finalTag: finalTag, title: title });
+    console.error('標籤信息:', { originalTag: tag, finalTag, title });
     
-    // 返回更詳細的錯誤信息以便調試
+    // 返回詳細錯誤信息但不中斷用戶體驗
     return NextResponse.json(
       { 
-        code: 500,
-        message: '获取豆瓣数据失败',
+        code: 200, // 保持 200 狀態碼避免前端錯誤處理
+        message: '获取数据时遇到问题',
         error: '网络连接问题或豆瓣API限制',
         details: (error as Error).message,
-        url: target,
-        suggestions: [
-          '請檢查網絡連接',
-          '豆瓣API可能暫時不可用',
-          '嘗試刷新頁面或稍後再試',
-          '某些標籤可能不被支持'
-        ],
-        filters: {
+        list: [], // 返回空列表
+        debug: {
+          url: target,
           originalTag: tag,
-          finalTag: finalTag,
-          title: title,
-          year: year,
-          region: region,
-          genres: genres
-        },
-        list: [] // 返回空列表而不是錯誤
+          finalTag,
+          title,
+          timestamp: new Date().toISOString()
+        }
       },
-      { status: 200 } // 改為200狀態碼，避免前端顯示錯誤
+      { status: 200 }
     );
   }
 }
