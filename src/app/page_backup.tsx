@@ -10,7 +10,7 @@ import {
   getAllFavorites,
   getAllPlayRecords,
 } from '@/lib/db.client';
-import { getDoubanCategories } from '@/lib/douban.client';
+import { getDoubanData } from '@/lib/douban.client';
 import { DoubanItem, DoubanResult } from '@/lib/types';
 
 import CapsuleSwitch from '@/components/CapsuleSwitch';
@@ -97,13 +97,7 @@ function HomeClient() {
           
           while (retryCount <= maxRetries) {
             try {
-              const data = await getDoubanCategories({
-                kind: section.type,
-                category: section.tag,
-                type: section.tag,
-                pageLimit: 16,
-                pageStart: 0
-              });
+              const data = await getDoubanData(section.type, section.tag, 16);
               if (data.code === 200 && data.list && data.list.length > 0) {
                 return {
                   ...section,
