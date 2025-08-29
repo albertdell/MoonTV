@@ -2,7 +2,7 @@
 
 import { AdminConfig } from './admin.types';
 import { RedisStorage } from './redis.db';
-import { Favorite, IStorage, PlayRecord } from './types';
+import { Favorite, IStorage, PlayRecord, SkipConfig } from './types';
 
 // storage type 常量: 'localstorage' | 'database'，默认 'localstorage'
 const STORAGE_TYPE =
@@ -11,6 +11,148 @@ const STORAGE_TYPE =
     | 'redis'
     | undefined) || 'localstorage';
 
+// 简单的内存存储实现，用于开发环境
+class MemoryStorage implements IStorage {
+  private data = new Map<string, any>();
+
+  async getPlayRecord(userName: string, key: string): Promise<PlayRecord | null> {
+    return this.data.get(`pr:${userName}:${key}`) || null;
+  }
+
+  async setPlayRecord(userName: string, key: string, record: PlayRecord): Promise<void> {
+    this.data.set(`pr:${userName}:${key}`, record);
+  }
+
+  async getAllPlayRecords(userName: string): Promise<{ [key: string]: PlayRecord }> {
+    const result: { [key: string]: PlayRecord } = {};
+    for (const [k, v] of this.data.entries()) {
+      if (k.startsWith(`pr:${userName}:`)) {
+        const key = k.replace(`pr:${userName}:`, '');
+        result[key] = v;
+      }
+    }
+    return result;
+  }
+
+  async deletePlayRecord(userName: string, key: string): Promise<void> {
+    this.data.delete(`pr:${userName}:${key}`);
+  }
+
+  async getFavorite(userName: string, key: string): Promise<Favorite | null> {
+    return this.data.get(`fav:${userName}:${key}`) || null;
+  }
+
+  async setFavorite(userName: string, key: string, favorite: Favorite): Promise<void> {
+    this.data.set(`fav:${userName}:${key}`, favorite);
+  }
+
+  async getAllFavorites(userName: string): Promise<{ [key: string]: Favorite }> {
+    const result: { [key: string]: Favorite } = {};
+    for (const [k, v] of this.data.entries()) {
+      if (k.startsWith(`fav:${userName}:`)) {
+        const key = k.replace(`fav:${userName}:`, '');
+        result[key] = v;
+      }
+    }
+    return result;
+  }
+
+  async deleteFavorite(userName: string, key: string): Promise<void> {
+    this.data.delete(`fav:${userName}:${key}`);
+  }
+
+  async registerUser(userName: string, password: string): Promise<void> {
+    this.data.set(`user:${userName}`, password);
+  }
+
+  async verifyUser(userName: string, password: string): Promise<boolean> {
+    return this.data.get(`user:${userName}`) === password;
+  }
+
+  async checkUserExist(userName: string): Promise<boolean> {
+    return this.data.has(`user:${userName}`);
+  }
+
+  async changePassword(userName: string, newPassword: string): Promise<void> {
+    this.data.set(`user:${userName}`, newPassword);
+  }
+
+  async deleteUser(userName: string): Promise<void> {
+    // 删除用户相关的所有数据
+    const keysToDelete: string[] = [];
+    for (const key of this.data.keys()) {
+      if (key.includes(userName)) {
+        keysToDelete.push(key);
+      }
+    }
+    keysToDelete.forEach(key => this.data.delete(key));
+  }
+
+  async getSearchHistory(userName: string): Promise<string[]> {
+    return this.data.get(`sh:${userName}`) || [];
+  }
+
+  async addSearchHistory(userName: string, keyword: string): Promise<void> {
+    const history = await this.getSearchHistory(userName);
+    const newHistory = [keyword, ...history.filter(h => h !== keyword)].slice(0, 20);
+    this.data.set(`sh:${userName}`, newHistory);
+  }
+
+  async deleteSearchHistory(userName: string, keyword?: string): Promise<void> {
+    if (keyword) {
+      const history = await this.getSearchHistory(userName);
+      this.data.set(`sh:${userName}`, history.filter(h => h !== keyword));
+    } else {
+      this.data.delete(`sh:${userName}`);
+    }
+  }
+
+  async getAllUsers(): Promise<string[]> {
+    const users: string[] = [];
+    for (const key of this.data.keys()) {
+      if (key.startsWith('user:')) {
+        users.push(key.replace('user:', ''));
+      }
+    }
+    return users;
+  }
+
+  async getAdminConfig(): Promise<AdminConfig | null> {
+    return this.data.get('admin:config') || null;
+  }
+
+  async setAdminConfig(config: AdminConfig): Promise<void> {
+    this.data.set('admin:config', config);
+  }
+
+  async getSkipConfig(userName: string, source: string, id: string): Promise<SkipConfig | null> {
+    return this.data.get(`skip:${userName}:${source}:${id}`) || null;
+  }
+
+  async setSkipConfig(userName: string, source: string, id: string, config: SkipConfig): Promise<void> {
+    this.data.set(`skip:${userName}:${source}:${id}`, config);
+  }
+
+  async deleteSkipConfig(userName: string, source: string, id: string): Promise<void> {
+    this.data.delete(`skip:${userName}:${source}:${id}`);
+  }
+
+  async getAllSkipConfigs(userName: string): Promise<{ [key: string]: SkipConfig }> {
+    const result: { [key: string]: SkipConfig } = {};
+    for (const [k, v] of this.data.entries()) {
+      if (k.startsWith(`skip:${userName}:`)) {
+        const key = k.replace(`skip:${userName}:`, '');
+        result[key] = v;
+      }
+    }
+    return result;
+  }
+
+  async clearAllData(): Promise<void> {
+    this.data.clear();
+  }
+}
+
 // 创建存储实例
 function createStorage(): IStorage {
   switch (STORAGE_TYPE) {
@@ -18,8 +160,8 @@ function createStorage(): IStorage {
       return new RedisStorage();
     case 'localstorage':
     default:
-      // 默认返回内存实现，保证本地开发可用
-      return null as unknown as IStorage;
+      // 返回内存实现，保证本地开发可用
+      return new MemoryStorage();
   }
 }
 

@@ -10,6 +10,7 @@ import {
   getAllFavorites,
   getAllPlayRecords,
 } from '@/lib/db.client';
+import { getDoubanData } from '@/lib/douban.client';
 import { DoubanItem, DoubanResult } from '@/lib/types';
 
 import CapsuleSwitch from '@/components/CapsuleSwitch';
@@ -96,16 +97,13 @@ function HomeClient() {
           
           while (retryCount <= maxRetries) {
             try {
-              const response = await fetch(`/api/douban?type=${section.type}&tag=${encodeURIComponent(section.tag)}&sort=time&pageSize=16`);
-              if (response.ok) {
-                const data: DoubanResult = await response.json();
-                if (data.code === 200 && data.list && data.list.length > 0) {
-                  return {
-                    ...section,
-                    data: data.list.slice(0, 16), // 增加到16個項目以支持滑動功能
-                    loading: false,
-                  };
-                }
+              const data = await getDoubanData(section.type, section.tag, 16);
+              if (data.code === 200 && data.list && data.list.length > 0) {
+                return {
+                  ...section,
+                  data: data.list.slice(0, 16), // 增加到16個項目以支持滑動功能
+                  loading: false,
+                };
               }
               
               // 如果響應不成功或沒有數據，進行重試

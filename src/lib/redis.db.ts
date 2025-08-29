@@ -3,7 +3,7 @@
 import { createClient, RedisClientType } from 'redis';
 
 import { AdminConfig } from './admin.types';
-import { Favorite, IStorage, PlayRecord } from './types';
+import { Favorite, IStorage, PlayRecord, SkipConfig } from './types';
 
 // 搜索历史最大条数
 const SEARCH_HISTORY_LIMIT = 20;
@@ -235,6 +235,73 @@ export class RedisStorage implements IStorage {
     await withRetry(() =>
       this.client.set(this.adminConfigKey(), JSON.stringify(config))
     );
+  }
+
+  // ---------- 用户密码管理 ----------
+  async changePassword(userName: string, newPassword: string): Promise<void> {
+    const key = this.pwdKey(userName);
+    await withRetry(() => this.client.set(key, newPassword));
+  }
+
+  async deleteUser(userName: string): Promise<void> {
+    // 删除用户密码
+    await withRetry(() => this.client.del(this.pwdKey(userName)));
+    // 删除搜索历史
+    await withRetry(() => this.client.del(this.shKey(userName)));
+    // 删除播放记录
+    await withRetry(() => this.client.del(this.prKey(userName)));
+    // 删除收藏夹
+    await withRetry(() => this.client.del(this.favKey(userName)));
+    // 删除跳过配置
+    const skipKeys = await withRetry(() => this.client.keys(this.skipKey(userName, '*', '*')));
+    if (skipKeys.length > 0) {
+      await withRetry(() => this.client.del(skipKeys));
+    }
+  }
+
+  // ---------- 跳过片头片尾配置 ----------
+  private skipKey(userName: string, source: string, id: string) {
+    return `u:${userName}:skip:${source}:${id}`;
+  }
+
+  async getSkipConfig(userName: string, source: string, id: string): Promise<SkipConfig | null> {
+    const key = this.skipKey(userName, source, id);
+    const val = await withRetry(() => this.client.get(key));
+    return val ? (JSON.parse(val) as SkipConfig) : null;
+  }
+
+  async setSkipConfig(userName: string, source: string, id: string, config: SkipConfig): Promise<void> {
+    const key = this.skipKey(userName, source, id);
+    await withRetry(() => this.client.set(key, JSON.stringify(config)));
+  }
+
+  async deleteSkipConfig(userName: string, source: string, id: string): Promise<void> {
+    const key = this.skipKey(userName, source, id);
+    await withRetry(() => this.client.del(key));
+  }
+
+  async getAllSkipConfigs(userName: string): Promise<{ [key: string]: SkipConfig }> {
+    const pattern = this.skipKey(userName, '*', '*');
+    const keys = await withRetry(() => this.client.keys(pattern));
+    const result: { [key: string]: SkipConfig } = {};
+    
+    for (const key of keys) {
+      const val = await withRetry(() => this.client.get(key));
+      if (val) {
+        // 从 key 中提取 source:id 作为结果的 key
+        const match = key.match(/u:[^:]+:skip:(.+)$/);
+        if (match) {
+          result[match[1]] = JSON.parse(val) as SkipConfig;
+        }
+      }
+    }
+    
+    return result;
+  }
+
+  // ---------- 数据清理 ----------
+  async clearAllData(): Promise<void> {
+    await withRetry(() => this.client.flushDb());
   }
 }
 
