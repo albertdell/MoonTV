@@ -14,7 +14,7 @@ const getCategoryTags = (type: 'movie' | 'tv', category?: string) => {
   return ['热门'];
 };
 
-const CustomTagSystem: React.FC<CustomTagSystemProps> = ({ type: _type, specificCategory: _specificCategory }) => {
+const CustomTagSystem: React.FC<CustomTagSystemProps> = ({ type, specificCategory }) => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const currentTag = searchParams.get('tag') || '热门';
